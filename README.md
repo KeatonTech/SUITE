@@ -31,29 +31,35 @@ keeping things out of the DOM unless they are actually on-screen.
 Suite templates can be built a number of different ways. The easiest and smallest involves
 Suite's unique JSON templating syntax, expressed here in Coffeescript:
 
-  stage = new SUITE.Stage "body"
+```coffeescript
+stage = new SUITE.Stage "body"
 
-  stage.addChild SUITE.ParseTemplate
-  "<dialog-container$dc>":
-    dialog:
-      "<dialog$dialog.dialog>":
-        $width: 600
-        $height: 400
+stage.addChild SUITE.ParseTemplate
+"<dialog-container$dc>":
+  dialog:
+    "<dialog$dialog.dialog>":
+      $width: 600
+      $height: 400
 
-  stage.render()
+stage.render()
+```
 
 Field that begin with a dollar sign ("$") are properties of the component. Other fields are
 slots that can contain one or more other components. The syntax of the component header is:
 
-  component-name[$jsVarName][#id][.class[.class]]
+```coffeescript
+component-name[$jsVarName][#id][.class[.class]]
+```
 
 Where component-name is the name of the module, #id is the HTML id and .class is the HTML
 class. $jsVarName automatically binds the components to a top-level (window.) variable
 prefixed by a dollar sign. This means no more query selectors, everything you need is already
 there in a variable. So changing the dialog's size and then showing it is as simple as:
 
-  $dialog.$width = 640
-  $dc.showDialog()
+```coffeescript
+$dialog.$width = 640
+$dc.showDialog()
+```
 
 ### Building a new module
 
