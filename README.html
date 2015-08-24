@@ -1,0 +1,48 @@
+<h1 id="suite">SUITE</h1>
+<h3 id="scriptable-ui-templating-engine">Scriptable UI Templating Engine</h3>
+<hr>
+<p>Suite is a lightweight UI framework for web applications inspired by both Facebook&#39;s React
+and Apple&#39;s UIKit. It aims to abstract out the intricacies of HTML by creating its own view
+structure comprised of functional components rather than DOM elements. This componentized
+approach makes it easy to share code between projects, and encourages a clean &amp; maintainable
+code structure for your app. Suite components also use their own layout system, which leaves
+CSS to just do what it&#39;s good at: styling things. Internally, Suite stays fast and nimble by
+keeping things out of the DOM unless they are actually on-screen.</p>
+<p><strong>tl;dr</strong> Suite provides the controller layer for Javascript MVC web apps.</p>
+<p><em>Suite is still in the early stages of development. Everything is subject to change</em></p>
+<h2 id="usage">Usage</h2>
+<h3 id="terminology">Terminology</h3>
+<ul>
+<li><strong>Component:</strong> The Suite equivalent of UIView/HTMLElement, represents a piece of the page.</li>
+<li><strong>Module:</strong> A type of component. Modules provide a number of functions that determine how
+the component is rendered and how it behaves.</li>
+<li><strong>Property:</strong> Each module defines properties that can be set on any component of their type
+at runtime. Properties determine the content, style, and layout of components.</li>
+<li><strong>Slot:</strong> Some components contain other components, in the same way that a <div> can hold
+child divs. The difference in Suite is that a component can have multiple different places
+to put its children. For example, the two-column layout component has two slots, so child
+components can be added to either column.</li>
+<li><strong>Stage:</strong> The top level component, bound to part of the HTML page.</li>
+</ul>
+<h3 id="building-a-template">Building a template</h3>
+<p>Suite templates can be built a number of different ways. The easiest and smallest involves
+Suite&#39;s unique JSON templating syntax, expressed here in Coffeescript:</p>
+<p>  stage = new SUITE.Stage &quot;body&quot;</p>
+<p>  stage.addChild SUITE.ParseTemplate
+  &quot;<dialog-container$dc>&quot;:
+    dialog:
+      &quot;<dialog$dialog.dialog>&quot;:
+        $width: 600
+        $height: 400</p>
+<p>  stage.render()</p>
+<p>Field that begin with a dollar sign (&quot;$&quot;) are properties of the component. Other fields are
+slots that can contain one or more other components. The syntax of the component header is:</p>
+<p>  component-name[$jsVarName][#id][.class[.class]]</p>
+<p>Where component-name is the name of the module, #id is the HTML id and .class is the HTML
+class. $jsVarName automatically binds the components to a top-level (window.) variable
+prefixed by a dollar sign. This means no more query selectors, everything you need is already
+there in a variable. So changing the dialog&#39;s size and then showing it is as simple as:</p>
+<p>  $dialog.$width = 640
+  $dc.showDialog()</p>
+<h3 id="building-a-new-module">Building a new module</h3>
+<p><em>This syntax is still in progress, I&#39;ll document it as soon as it stabilizes</em></p>
