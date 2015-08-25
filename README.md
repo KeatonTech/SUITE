@@ -49,11 +49,11 @@ Field that begin with a dollar sign ("$") are properties of the component. Other
 slots that can contain one or more other components. The syntax of the component header is:
 
 ```
-component-name[$jsVarName][#id][.class[.class]]
+component-name[@jsVarName][#id][.class[.class]]
 ```
 
 Where component-name is the name of the module, #id is the HTML id and .class is the HTML
-class. $jsVarName automatically attaches the element to the template object as a variable.
+class. @jsVarName automatically attaches the element to the template object as a variable.
 This means no more query selectors, everything you need is already there in a variable. So
 changing the dialog's size and then showing it is as simple as:
 
