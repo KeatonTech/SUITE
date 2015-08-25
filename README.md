@@ -10,7 +10,7 @@ code structure for your app. Suite components also use their own layout system, 
 CSS to just do what it's good at: styling things. Internally, Suite stays fast and nimble by
 keeping things out of the DOM unless they are actually on-screen.
 
-**tl;dr** Suite provides the controller layer for Javascript MVC web apps.
+**tl;dr** Suite is a framework for interactive web components with their own layout system.
 
 *Suite is still in the early stages of development. Everything is subject to change*
 
