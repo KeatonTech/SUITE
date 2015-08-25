@@ -15,7 +15,7 @@ window.SUITE.ParseTemplate = (json)->
   # following format: component-name[$jsVarName][#id][.class[.class]]
   selector_regex = ///
                    ([A-Za-z0-9\-\_]+)       # Component Name
-                   (\$([A-Za-z0-9\-\_]+))?    # JS Variable Name
+                   (\@([A-Za-z0-9\-\_]+))?    # JS Variable Name
                    (\#([A-Za-z0-9\-\_]+))?  # HTML ID
                    (\.([A-Za-z0-9\-\_]+))?  # HTML Classes
                    ///

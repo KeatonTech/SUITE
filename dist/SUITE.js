@@ -838,7 +838,7 @@
       }
       return container;
     }
-    selector_regex = /([A-Za-z0-9\-\_]+)(\$([A-Za-z0-9\-\_]+))?(\#([A-Za-z0-9\-\_]+))?(\.([A-Za-z0-9\-\_]+))?/;
+    selector_regex = /([A-Za-z0-9\-\_]+)(\@([A-Za-z0-9\-\_]+))?(\#([A-Za-z0-9\-\_]+))?(\.([A-Za-z0-9\-\_]+))?/;
     parse_selector = function(selector) {
       var classes, component, id, jsvar, match, _;
       selector = selector.replace("<", "").replace(">", "");

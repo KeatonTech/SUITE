@@ -35,9 +35,9 @@ Suite's unique JSON templating syntax, expressed here in Coffeescript:
 stage = new SUITE.Stage "body"
 
 dialog_setup = SUITE.ParseTemplate
-  "<dialog-container$dc>":
+  "<dialog-container@dc>":
     dialog:
-      "<dialog$dialog.dialog>":
+      "<dialog@dialog.dialog>":
         $width: 600
         $height: 400
 
