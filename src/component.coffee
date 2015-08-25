@@ -1,8 +1,9 @@
 # Represents an instance of a VUE component
 class window.SUITE.Component
   constructor: (module_or_name)->
-    @element = undefined
-    @parent = undefined
+    @element = undefined    # Rendered HTML element
+    @parent = undefined     # Parent component
+    @_varname = undefined   # Stores this component's template variable name when applicable
 
     if module_or_name instanceof window.SUITE.Module
       @_module = module_or_name
@@ -30,6 +31,21 @@ class window.SUITE.Component
     @slots = {}
     for name, slot of @_module.slots when slot.isRepeated
       @slots[name] = []
+
+  copy: ()->
+    copy = new SUITE.Component @type
+    copy.parent = @parent
+    copy._module = @_module
+    copy._varname = @_varname
+    copy._values[k] = v for k,v of @_values
+
+    for k, slot_contents of @slots
+      if slot_contents instanceof Array
+        copy.slots[k] = (s.copy() for s in slot_contents)
+      else
+        copy.slots[k] = slot_contents.copy()
+
+    return copy
 
   # PROPERTIES ==============================================================================
 
@@ -62,6 +78,7 @@ class window.SUITE.Component
   # Fills a slot with another component
   fillSlot: (slotName, component)->
     if !(slot_class = @_module.slots[slotName])? then return -1
+    if component instanceof SUITE.Template then component = component._component
     if !slot_class.allowComponent(component) then return -1
     component.parent = this
 
@@ -93,6 +110,25 @@ class window.SUITE.Component
       @slots[slotName].parent = undefined
     delete @slots[slotName]
     @rerender()
+
+  # List all 'child' elements in any slot
+  allSlotComponents: ()->
+    all = []
+    for k, slot_contents of @slots
+      if slot_contents instanceof Array
+        if slot_contents.length is 0 then continue
+        Array.prototype.push.apply(all, slot_contents)
+      else
+        all.push slot_contents
+    return all
+
+  # List all child components including children of children
+  allSubComponents: ()->
+    all = []
+    for c in @allSlotComponents()
+      all.push c
+      Array.prototype.push.apply(all, c.allSubComponents())
+    return all
 
   # HTML GENERATION =========================================================================
 

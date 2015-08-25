@@ -34,31 +34,32 @@ Suite's unique JSON templating syntax, expressed here in Coffeescript:
 ```coffeescript
 stage = new SUITE.Stage "body"
 
-stage.addChild SUITE.ParseTemplate
+dialog_setup = SUITE.ParseTemplate
   "<dialog-container$dc>":
     dialog:
       "<dialog$dialog.dialog>":
         $width: 600
         $height: 400
 
+stage.addChild dialog_setup
 stage.render()
 ```
 
 Field that begin with a dollar sign ("$") are properties of the component. Other fields are
 slots that can contain one or more other components. The syntax of the component header is:
 
-```coffeescript
+```
 component-name[$jsVarName][#id][.class[.class]]
 ```
 
 Where component-name is the name of the module, #id is the HTML id and .class is the HTML
-class. $jsVarName automatically binds the components to a top-level (window.) variable
-prefixed by a dollar sign. This means no more query selectors, everything you need is already
-there in a variable. So changing the dialog's size and then showing it is as simple as:
+class. $jsVarName automatically attaches the element to the template object as a variable.
+This means no more query selectors, everything you need is already there in a variable. So
+changing the dialog's size and then showing it is as simple as:
 
 ```coffeescript
-$dialog.$width = 640
-$dc.showDialog()
+dialog_setup.dialog.$width = 640
+dialog_setup.dc.showDialog()
 ```
 
 ### Building a new module

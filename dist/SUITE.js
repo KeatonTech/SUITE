@@ -395,6 +395,7 @@
       var func, name, slot, _ref, _ref1;
       this.element = void 0;
       this.parent = void 0;
+      this._varname = void 0;
       if (module_or_name instanceof window.SUITE.Module) {
         this._module = module_or_name;
         this.type = module_or_name.name;
@@ -430,6 +431,37 @@
         }
       }
     }
+
+    Component.prototype.copy = function() {
+      var copy, k, s, slot_contents, v, _ref, _ref1;
+      copy = new SUITE.Component(this.type);
+      copy.parent = this.parent;
+      copy._module = this._module;
+      copy._varname = this._varname;
+      _ref = this._values;
+      for (k in _ref) {
+        v = _ref[k];
+        copy._values[k] = v;
+      }
+      _ref1 = this.slots;
+      for (k in _ref1) {
+        slot_contents = _ref1[k];
+        if (slot_contents instanceof Array) {
+          copy.slots[k] = (function() {
+            var _i, _len, _results;
+            _results = [];
+            for (_i = 0, _len = slot_contents.length; _i < _len; _i++) {
+              s = slot_contents[_i];
+              _results.push(s.copy());
+            }
+            return _results;
+          })();
+        } else {
+          copy.slots[k] = slot_contents.copy();
+        }
+      }
+      return copy;
+    };
 
     Component.prototype._setupPropertyBindings = function() {
       var name, p, _ref, _results;
@@ -483,6 +515,9 @@
       if ((slot_class = this._module.slots[slotName]) == null) {
         return -1;
       }
+      if (component instanceof SUITE.Template) {
+        component = component._component;
+      }
       if (!slot_class.allowComponent(component)) {
         return -1;
       }
@@ -529,6 +564,36 @@
       }
       delete this.slots[slotName];
       return this.rerender();
+    };
+
+    Component.prototype.allSlotComponents = function() {
+      var all, k, slot_contents, _ref;
+      all = [];
+      _ref = this.slots;
+      for (k in _ref) {
+        slot_contents = _ref[k];
+        if (slot_contents instanceof Array) {
+          if (slot_contents.length === 0) {
+            continue;
+          }
+          Array.prototype.push.apply(all, slot_contents);
+        } else {
+          all.push(slot_contents);
+        }
+      }
+      return all;
+    };
+
+    Component.prototype.allSubComponents = function() {
+      var all, c, _i, _len, _ref;
+      all = [];
+      _ref = this.allSlotComponents();
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        c = _ref[_i];
+        all.push(c);
+        Array.prototype.push.apply(all, c.allSubComponents());
+      }
+      return all;
     };
 
     Component.prototype.render = function() {
@@ -639,6 +704,38 @@
 
 }).call(this);
 (function() {
+  window.SUITE.Template = (function() {
+    function Template(topLevelComponent) {
+      this._component = topLevelComponent;
+    }
+
+    Template.prototype.addComponentVariable = function(name, component) {
+      component._varname = name;
+      return this[name] = component;
+    };
+
+    Template.prototype.copy = function() {
+      var component, copy, _i, _len, _ref;
+      copy = new SUITE.Template(this._component.copy());
+      if (this._component._varname) {
+        copy[this._component._varname] = this._component;
+      }
+      _ref = copy._component.allSubComponents();
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        component = _ref[_i];
+        if (component._varname != null) {
+          copy[component._varname] = component;
+        }
+      }
+      return copy;
+    };
+
+    return Template;
+
+  })();
+
+}).call(this);
+(function() {
   window.SUITE.ModuleBuilder = (function() {
     function ModuleBuilder(name) {
       this.module = new window.SUITE.Module(name);
@@ -741,7 +838,7 @@
       }
       return container;
     }
-    selector_regex = /([A-Za-z0-9\-\_]+)(\$[A-Za-z0-9\-\_]+)?(\#([A-Za-z0-9\-\_]+))?(\.([A-Za-z0-9\-\_]+))?/;
+    selector_regex = /([A-Za-z0-9\-\_]+)(\$([A-Za-z0-9\-\_]+))?(\#([A-Za-z0-9\-\_]+))?(\.([A-Za-z0-9\-\_]+))?/;
     parse_selector = function(selector) {
       var classes, component, id, jsvar, match, _;
       selector = selector.replace("<", "").replace(">", "");
@@ -749,12 +846,12 @@
       if (match == null) {
         throw new Error("Invalid selector: '" + selector + "'");
       }
-      _ = match[0], component = match[1], jsvar = match[2], _ = match[3], id = match[4], _ = match[5], classes = match[6];
+      _ = match[0], component = match[1], _ = match[2], jsvar = match[3], _ = match[4], id = match[5], _ = match[6], classes = match[7];
       classes = classes != null ? classes.replace(".", " ") : void 0;
       return [component, jsvar, id, classes];
     };
-    build_recursive = function(selector, properties) {
-      var classes, comp_count, component, component_name, id, jsvar, name, slot_properties, slot_selector, val, _ref;
+    build_recursive = function(selector, properties, template) {
+      var classes, comp_count, component, component_name, id, jsvar, name, slot_properties, slot_selector, top_level, val, _ref;
       _ref = parse_selector(selector), component_name = _ref[0], jsvar = _ref[1], id = _ref[2], classes = _ref[3];
       component = new SUITE.Component(component_name);
       if ((id != null) && component.hasPropertyValue("id")) {
@@ -762,6 +859,10 @@
       }
       if ((classes != null) && component.hasPropertyValue("class")) {
         component.$class = classes;
+      }
+      top_level = template == null;
+      if (top_level) {
+        template = new SUITE.Template(component);
       }
       for (name in properties) {
         val = properties[name];
@@ -779,16 +880,20 @@
           }
           for (slot_selector in val) {
             slot_properties = val[slot_selector];
-            component.fillSlot(name, build_recursive(slot_selector, slot_properties));
+            component.fillSlot(name, build_recursive(slot_selector, slot_properties, template));
           }
         } else {
           throw new Error("No slot named '" + name + "' exists on module '" + component_name + "'");
         }
       }
       if (jsvar != null) {
-        window[jsvar] = component;
+        template.addComponentVariable(jsvar, component);
       }
-      return component;
+      if (top_level) {
+        return template;
+      } else {
+        return component;
+      }
     };
     single_key = Object.keys(json)[0];
     return build_recursive(single_key, json[single_key]);

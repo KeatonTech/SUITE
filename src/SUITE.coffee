@@ -34,6 +34,7 @@ window.SUITE =
 #@prepros-append ./attributes.coffee
 #@prepros-append ./component.coffee
 #@prepros-append ./stage.coffee
+#@prepros-append ./template.coffee
 
 # OPTIONAL IMPORTS ==========================================================================
 #@prepros-append ./optional/module-builder.coffee

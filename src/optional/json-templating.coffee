@@ -15,7 +15,7 @@ window.SUITE.ParseTemplate = (json)->
   # following format: component-name[$jsVarName][#id][.class[.class]]
   selector_regex = ///
                    ([A-Za-z0-9\-\_]+)       # Component Name
-                   (\$[A-Za-z0-9\-\_]+)?    # JS Variable Name
+                   (\$([A-Za-z0-9\-\_]+))?    # JS Variable Name
                    (\#([A-Za-z0-9\-\_]+))?  # HTML ID
                    (\.([A-Za-z0-9\-\_]+))?  # HTML Classes
                    ///
@@ -24,16 +24,19 @@ window.SUITE.ParseTemplate = (json)->
     match = selector.match selector_regex
     if !match? then throw new Error "Invalid selector: '#{selector}'"
 
-    [_,component, jsvar, _, id, _, classes] = match
+    [_,component, _, jsvar, _, id, _, classes] = match
     classes = if classes? then classes.replace ".", " "
     return [component, jsvar, id, classes]
 
   # This is where the magic happens
-  build_recursive = (selector, properties)->
+  build_recursive = (selector, properties, template)->
     [component_name, jsvar, id, classes] = parse_selector selector
     component = new SUITE.Component component_name
     if id? and component.hasPropertyValue("id") then component.$id = id
     if classes? and component.hasPropertyValue("class") then component.$class = classes
+
+    top_level = !template?
+    if top_level then template = new SUITE.Template component
 
     for name, val of properties
       if name[0] == "$" then component[name] = val
@@ -46,13 +49,13 @@ window.SUITE.ParseTemplate = (json)->
           throw new Error "Slot '#{name}' can only accept 1 component, got #{comp_count}"
 
         for slot_selector, slot_properties of val
-          component.fillSlot name, build_recursive(slot_selector, slot_properties)
+          component.fillSlot name, build_recursive(slot_selector, slot_properties, template)
 
       else
         throw new Error "No slot named '#{name}' exists on module '#{component_name}'"
 
-    if jsvar? then window[jsvar] = component
-    return component
+    if jsvar? then template.addComponentVariable jsvar, component
+    return if top_level then template else component
 
   single_key = Object.keys(json)[0]
   return build_recursive single_key, json[single_key]

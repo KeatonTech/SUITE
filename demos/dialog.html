@@ -5,7 +5,7 @@
   <script type="text/javascript">
     window.onload = function(){
       var stage = new SUITE.Stage("body");
-      stage.addChild(SUITE.ParseTemplate({
+      var dialog_setup = SUITE.ParseTemplate({
         "<dialog-container$dc>": {
           dialog: {
             "<dialog$dialog.dialog>": {
@@ -14,12 +14,14 @@
             }
           }
         }
-      }));
+      });
+
+      stage.addChild(dialog_setup);
       stage.render();
 
       setTimeout(function(){
         SUITE.AnimateChanges(new SUITE.Transition(300), function(){
-          $dc.showDialog();
+          dialog_setup.dc.showDialog();
         });
       },1000);
     }
