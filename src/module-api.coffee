@@ -37,6 +37,7 @@ class window.SUITE.ModuleAPI
 
   _prepareAttrSetter: ()->
     @setAttrs = SUITE.AttrFunctionFactory(@_._rootElement, SUITE._currentTransition)
+    @forceAttrs = SUITE.AttrFunctionFactory(@_._rootElement) # Supresses animation
 
   # SIMPLE INHERITANCE ======================================================================
 

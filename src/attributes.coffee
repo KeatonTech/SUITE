@@ -40,6 +40,8 @@ window.SUITE.AttrFunctionFactory = (default_element, transition)->
 
         # Everything else is assumed to be a style, and can be animated if necessary
         else
+          if typeof value is "number" and !(name in SUITE.UnitlessAttributes)
+            value = "#{value}px"
           if !transition? then element.style[name] = value
           else
             style_changes[name] = value
@@ -62,3 +64,14 @@ window.SUITE.AttrFunctionFactory = (default_element, transition)->
       # Clean up the CSS3 transitions
       wait 5, ()->
         element.setAttribute("style", element.getAttribute("style").replace(full_style,""))
+
+
+# These attributes are unitless and therefore should not have 'px' appended to their values
+window.SUITE.UnitlessAttributes = [
+  "opacity",
+  "zIndex",
+  "fontWeight", "lineHeight",
+  "counterIncrement", "counterReset",
+  "flexGrow", "flexShrink",
+  "volume", "stress", "pitchRange", "richness"
+]

@@ -6,13 +6,13 @@ new window.SUITE.ModuleBuilder("visible-element")
     @setAttrs "class": val
 
   .addProperty "x", [SUITE.PrimitiveType.Number], 0, (val)->
-    @setAttrs "left": val+"px"
+    @setAttrs "left": val
   .addProperty "y", [SUITE.PrimitiveType.Number], 0, (val)->
-    @setAttrs "top": val+"px"
+    @setAttrs "top": val
   .addProperty "width", [SUITE.PrimitiveType.Number], 0, (val)->
-    @setAttrs "width": val+"px"
+    @setAttrs "width": val
   .addProperty "height", [SUITE.PrimitiveType.Number], 0, (val)->
-    @setAttrs "height": val+"px"
+    @setAttrs "height": val
 
   .setRenderer ()->
     div = @createElement "div"

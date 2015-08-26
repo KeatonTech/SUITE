@@ -324,6 +324,8 @@
 
 }).call(this);
 (function() {
+  var __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+
   window.SUITE.AttrFunctionFactory = function(default_element, transition) {
     return function(attributes_or_element, or_attributes) {
       var attr_name, attributes, classname, element, full_style, name, p, prefixes, style_changes, transition_strings, transition_style, value;
@@ -357,6 +359,9 @@
             }
             break;
           default:
+            if (typeof value === "number" && !(__indexOf.call(SUITE.UnitlessAttributes, name) >= 0)) {
+              value = "" + value + "px";
+            }
             if (transition == null) {
               element.style[name] = value;
             } else {
@@ -399,6 +404,8 @@
       });
     };
   };
+
+  window.SUITE.UnitlessAttributes = ["opacity", "zIndex", "fontWeight", "lineHeight", "counterIncrement", "counterReset", "flexGrow", "flexShrink", "volume", "stress", "pitchRange", "richness"];
 
 }).call(this);
 (function() {
@@ -454,7 +461,8 @@
     };
 
     ModuleAPI.prototype._prepareAttrSetter = function() {
-      return this.setAttrs = SUITE.AttrFunctionFactory(this._._rootElement, SUITE._currentTransition);
+      this.setAttrs = SUITE.AttrFunctionFactory(this._._rootElement, SUITE._currentTransition);
+      return this.forceAttrs = SUITE.AttrFunctionFactory(this._._rootElement);
     };
 
     ModuleAPI.prototype._setSuper = function(super_module, function_name) {
@@ -1038,19 +1046,19 @@
     });
   }).addProperty("x", [SUITE.PrimitiveType.Number], 0, function(val) {
     return this.setAttrs({
-      "left": val + "px"
+      "left": val
     });
   }).addProperty("y", [SUITE.PrimitiveType.Number], 0, function(val) {
     return this.setAttrs({
-      "top": val + "px"
+      "top": val
     });
   }).addProperty("width", [SUITE.PrimitiveType.Number], 0, function(val) {
     return this.setAttrs({
-      "width": val + "px"
+      "width": val
     });
   }).addProperty("height", [SUITE.PrimitiveType.Number], 0, function(val) {
     return this.setAttrs({
-      "height": val + "px"
+      "height": val
     });
   }).setRenderer(function() {
     var div;
@@ -1142,22 +1150,26 @@
       }
       dialog = this.slots.dialog;
       oc = this.createElement("overlay", "div");
-      oc.style.top = 0;
-      oc.style.left = 0;
-      oc.style.width = this.width + "px";
-      oc.style.height = this.height + "px";
-      oc.style.zIndex = 899;
+      this.forceAttrs(oc, {
+        top: 0,
+        left: 0,
+        width: this.width,
+        height: this.height,
+        zIndex: 899
+      });
       this.setAttrs(oc, {
         backgroundColor: this.$overlayColor,
         opacity: this.$overlayOpacity
       });
       dc = this.renderSlot("dialog", dialog);
-      dc.style.width = dialog.width + "px";
-      dc.style.height = dialog.height + "px";
-      dc.style.left = this.width / 2 - dialog.width / 2 + "px";
-      dc.style.top = this.height / 2 - dialog.height / 2 + "px";
-      dc.style.zIndex = 900;
-      dc.style.opacity = 0;
+      this.forceAttrs(dc, {
+        top: this.height / 2 - dialog.height / 2,
+        left: this.width / 2 - dialog.width / 2,
+        width: dialog.width,
+        height: dialog.height,
+        zIndex: 900,
+        opacity: 0
+      });
       this.setAttrs(dc, {
         opacity: 1
       });
@@ -1185,7 +1197,7 @@
     }
     return div;
   }).setOnResize(function(size) {
-    var dialog, dialog_element, overlay_element, slot, _i, _len, _ref;
+    var dialog, dialog_element, slot, _i, _len, _ref;
     this.$width = size.width;
     this.$height = size.height;
     _ref = this.slots.children;
@@ -1196,14 +1208,17 @@
     if (this.$displayed) {
       dialog = this.slots.dialog;
       dialog.resize(size);
-      overlay_element = this.getElement("overlay");
       dialog_element = this.getElement("dialog");
-      overlay_element.style.width = size.width + "px";
-      overlay_element.style.height = size.height + "px";
-      dialog_element.style.width = dialog.width + "px";
-      dialog_element.style.height = dialog.height + "px";
-      dialog_element.style.left = size.width / 2 - dialog.width / 2 + "px";
-      return dialog_element.style.top = size.height / 2 - dialog.height / 2 + "px";
+      this.forceAttrs(this.getElement("overlay"), {
+        width: size.width,
+        height: size.height
+      });
+      return this.forceAttrs(this.getElement("dialog"), {
+        width: dialog.width,
+        height: dialog.height,
+        left: size.width / 2 - dialog.width / 2,
+        top: size.height / 2 - dialog.height / 2
+      });
     }
   }).register();
 

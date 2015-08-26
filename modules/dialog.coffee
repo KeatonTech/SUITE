@@ -19,11 +19,11 @@ new window.SUITE.ModuleBuilder("dialog-container")
       dialog = @slots.dialog
 
       oc = @createElement "overlay", "div"
-      oc.style.top = 0
-      oc.style.left = 0
-      oc.style.width = @width + "px"
-      oc.style.height = @height + "px"
-      oc.style.zIndex = 899
+      @forceAttrs oc,
+        top: 0, left: 0,
+        width: @width
+        height: @height
+        zIndex: 899
 
       # Fade in if animated
       @setAttrs oc,
@@ -31,14 +31,15 @@ new window.SUITE.ModuleBuilder("dialog-container")
         opacity: @$overlayOpacity
 
       dc = @renderSlot "dialog", dialog
-      dc.style.width = dialog.width + "px"
-      dc.style.height = dialog.height + "px"
-      dc.style.left = @width / 2 - dialog.width / 2 + "px"
-      dc.style.top = @height / 2 - dialog.height / 2 + "px"
-      dc.style.zIndex = 900
+      @forceAttrs dc,
+        top: @height / 2 - dialog.height / 2
+        left: @width / 2 - dialog.width / 2
+        width: dialog.width
+        height: dialog.height
+        zIndex: 900
+        opacity: 0
 
       # Fade in if animated
-      dc.style.opacity = 0
       @setAttrs dc, opacity: 1
 
       @appendElement "overlay"
@@ -73,15 +74,17 @@ new window.SUITE.ModuleBuilder("dialog-container")
       dialog = @slots.dialog
       dialog.resize size
 
-      overlay_element = @getElement "overlay"
       dialog_element = @getElement "dialog"
 
-      overlay_element.style.width = size.width + "px"
-      overlay_element.style.height = size.height + "px"
-      dialog_element.style.width = dialog.width + "px"
-      dialog_element.style.height = dialog.height + "px"
-      dialog_element.style.left = size.width / 2 - dialog.width / 2 + "px"
-      dialog_element.style.top = size.height / 2 - dialog.height / 2 + "px"
+      @forceAttrs @getElement("overlay"),
+        width: size.width
+        height: size.height
+
+      @forceAttrs @getElement("dialog"),
+        width: dialog.width
+        height: dialog.height
+        left: size.width / 2 - dialog.width / 2
+        top: size.height / 2 - dialog.height / 2
 
   .register()
 
