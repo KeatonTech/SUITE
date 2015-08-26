@@ -4,13 +4,13 @@ new window.SUITE.ModuleBuilder("dialog-container")
   .addSlot "dialog", false, (type)-> type == "dialog"
 
   # Dialog styling properties
-  .addProperty "overlayColor", [SUITE.PrimitiveType.Color], "black", (val, setAttrs)->
-    if displayed then setAttrs @overlay_container, backgroundColor: val
-  .addProperty "overlayOpacity", [SUITE.PrimitiveType.Number], 0.6, (val, setAttrs)->
-    if displayed then setAttrs @overlay_container, opacity: val
+  .addProperty "overlayColor", [SUITE.PrimitiveType.Color], "black", (val)->
+    if displayed then @setAttrs @getElement("overlay"), backgroundColor: val
+  .addProperty "overlayOpacity", [SUITE.PrimitiveType.Number], 0.6, (val)->
+    if displayed then @setAttrs @getElement("dialog"), opacity: val
 
   # This is where the HTML magic happens
-  .addProperty "displayed", [SUITE.PrimitiveType.Boolean], false, (val, setAttrs, oldval)->
+  .addProperty "displayed", [SUITE.PrimitiveType.Boolean], false, (val, oldval)->
     if oldval == val then return # No change in displayed status
     if val
       if !@slots.dialog?
@@ -18,7 +18,7 @@ new window.SUITE.ModuleBuilder("dialog-container")
         return
       dialog = @slots.dialog
 
-      oc = @overlay_container = document.createElement "div"
+      oc = @createElement "overlay", "div"
       oc.style.top = 0
       oc.style.left = 0
       oc.style.width = @width + "px"
@@ -26,11 +26,11 @@ new window.SUITE.ModuleBuilder("dialog-container")
       oc.style.zIndex = 899
 
       # Fade in if animated
-      setAttrs oc,
+      @setAttrs oc,
         backgroundColor: @$overlayColor
         opacity: @$overlayOpacity
 
-      dc = @dialog_container = dialog.render()
+      dc = @renderSlot "dialog", dialog
       dc.style.width = dialog.width + "px"
       dc.style.height = dialog.height + "px"
       dc.style.left = @width / 2 - dialog.width / 2 + "px"
@@ -39,15 +39,15 @@ new window.SUITE.ModuleBuilder("dialog-container")
 
       # Fade in if animated
       dc.style.opacity = 0
-      setAttrs dc, opacity: 1
+      @setAttrs dc, opacity: 1
 
-      @element.appendChild oc
-      @element.appendChild dc
+      @appendElement "overlay"
+      @appendElement "dialog"
 
     # Clean up the dialog
     else
-      @overlay_container.parentNode.removeChild @overlay_container
-      @dialog_container.parentNode.removeChild @dialog_container
+      @removeElement "overlay"
+      @removeElement "dialog"
 
   # Add methods to show or hide the dialog
   .addMethod "hideDialog", ()-> @$displayed = false
@@ -57,9 +57,9 @@ new window.SUITE.ModuleBuilder("dialog-container")
 
   # Doesn't need any special rendering unless the dialog is displayed
   .setRenderer (slots, superclass)->
-    div = superclass.render.call this, slots, superclass.super
+    div = @super()
     if @$displayed
-      @_values.displayed = false
+      @$displayed = false
       wait 1, ()-> @$displayed = true
     return div
 
@@ -72,12 +72,16 @@ new window.SUITE.ModuleBuilder("dialog-container")
     if @$displayed
       dialog = @slots.dialog
       dialog.resize size
-      @overlay_container.style.width = size.width + "px"
-      @overlay_container.style.height = size.height + "px"
-      @dialog_container.style.width = dialog.width + "px"
-      @dialog_container.style.height = dialog.height + "px"
-      @dialog_container.style.left = size.width / 2 - dialog.width / 2 + "px"
-      @dialog_container.style.top = size.height / 2 - dialog.height / 2 + "px"
+
+      overlay_element = @getElement "overlay"
+      dialog_element = @getElement "dialog"
+
+      overlay_element.style.width = size.width + "px"
+      overlay_element.style.height = size.height + "px"
+      dialog_element.style.width = dialog.width + "px"
+      dialog_element.style.height = dialog.height + "px"
+      dialog_element.style.left = size.width / 2 - dialog.width / 2 + "px"
+      dialog_element.style.top = size.height / 2 - dialog.height / 2 + "px"
 
   .register()
 

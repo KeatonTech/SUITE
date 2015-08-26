@@ -51,8 +51,9 @@
     'Boolean': 1,
     'String': 2,
     'Color': 3,
-    'Component': 4,
+    'Function': 4,
     'Number': 8,
+    'Component': 16,
     'Single': 0,
     'List': 32,
     'Object': 96
@@ -101,6 +102,19 @@
     return Property;
 
   })();
+
+  window.SUITE.EventListenerProperty = (function(_super) {
+    __extends(EventListenerProperty, _super);
+
+    function EventListenerProperty(listener, element_name, setter, default_val) {
+      EventListenerProperty.__super__.constructor.call(this, SUITE.PrimitiveType.Function, default_val, setter);
+      this.listener = listener;
+      this.element = element_name;
+    }
+
+    return EventListenerProperty;
+
+  })(window.SUITE.Property);
 
   window.SUITE.ComponentProperty = (function() {
     function ComponentProperty(type, handlers) {
@@ -261,8 +275,8 @@
       }
     };
 
-    Module.prototype.render = function(slots, super_mod) {
-      return super_mod != null ? super_mod.render.call(this, slots, super_mod["super"]) : void 0;
+    Module.prototype.render = function() {
+      return this["super"]();
     };
 
     Module.prototype.onResize = function(size) {
@@ -388,13 +402,136 @@
 
 }).call(this);
 (function() {
+  window.SUITE.ModuleAPI = (function() {
+    function ModuleAPI(component) {
+      var name, prefixed, property, s, slot, _ref, _ref1;
+      this._ = component;
+      this.slots = {};
+      _ref = this._.slots;
+      for (name in _ref) {
+        slot = _ref[name];
+        if (slot instanceof Array) {
+          this.slots[name] = (function() {
+            var _i, _len, _results;
+            _results = [];
+            for (_i = 0, _len = slot.length; _i < _len; _i++) {
+              s = slot[_i];
+              _results.push(s._api);
+            }
+            return _results;
+          })();
+        } else {
+          this.slots[name] = slot._api;
+        }
+      }
+      _ref1 = this._._module.properties;
+      for (name in _ref1) {
+        property = _ref1[name];
+        prefixed = "$" + name;
+        Object.defineProperty(this, prefixed, Object.getOwnPropertyDescriptor(this._, prefixed));
+      }
+      Object.defineProperty(this, "width", {
+        get: function() {
+          return this._.width;
+        }
+      });
+      Object.defineProperty(this, "height", {
+        get: function() {
+          return this._.height;
+        }
+      });
+      this.resize = this._.resize.bind(this._);
+      this.render = this._.render.bind(this._);
+      this.fillSlot = this._.fillSlot.bind(this._);
+      this.removeSlotComponent = this._.removeSlotComponent.bind(this._);
+      this.emptySlot = this._.emptySlot.bind(this._);
+    }
+
+    ModuleAPI.prototype._prepare = function(super_module, super_function_name) {
+      this._prepareAttrSetter();
+      this._setSuper(super_module, super_function_name);
+      return this._clearSuper;
+    };
+
+    ModuleAPI.prototype._prepareAttrSetter = function() {
+      return this.setAttrs = SUITE.AttrFunctionFactory(this._._rootElement, SUITE._currentTransition);
+    };
+
+    ModuleAPI.prototype._setSuper = function(super_module, function_name) {
+      this._super_module = super_module;
+      this._super_func = this._super_module[function_name];
+      return this["super"] = function() {
+        var run, _ref;
+        run = this._super_func;
+        this._super_module = this._super_module["super"];
+        this._super_func = (_ref = this._super_module) != null ? _ref[function_name] : void 0;
+        if (run != null) {
+          return run.apply(this, arguments);
+        }
+      };
+    };
+
+    ModuleAPI.prototype._clearSuper = function() {
+      return this["super"] = void 0;
+    };
+
+    ModuleAPI.prototype.appendElement = function(root_or_element, element) {
+      if (element != null) {
+        if (typeof element === "string") {
+          element = this.getElement(element);
+        }
+        return root_or_element.appendChild(element);
+      } else {
+        if (typeof root_or_element === "string") {
+          element = this.getElement(root_or_element);
+        }
+        return this._._rootElement.appendChild(element);
+      }
+    };
+
+    ModuleAPI.prototype.removeElement = function(name_or_element) {
+      if (typeof name_or_element === "string") {
+        name_or_element = this.getElement(name_or_element);
+      }
+      if (name_or_element == null) {
+        return;
+      }
+      return name_or_element.parentNode.removeChild(name_or_element);
+    };
+
+    ModuleAPI.prototype.createElement = function(elementName_or_tagName, tagName) {
+      if (tagName == null) {
+        return document.createElement(elementName_or_tagName);
+      }
+      return this._._elements[elementName_or_tagName] = document.createElement(tagName);
+    };
+
+    ModuleAPI.prototype.getElement = function(name) {
+      return this._._elements[name];
+    };
+
+    ModuleAPI.prototype.renderSlot = function(slot_or_name, slot) {
+      if (slot != null) {
+        return this._._elements[slot_or_name] = slot.render();
+      } else {
+        return slot_or_name.render();
+      }
+    };
+
+    return ModuleAPI;
+
+  })();
+
+}).call(this);
+(function() {
   var __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   window.SUITE.Component = (function() {
     function Component(module_or_name) {
       var func, name, slot, _ref, _ref1;
-      this.element = void 0;
       this.parent = void 0;
+      this._rootElement = void 0;
+      this._elements = {};
       this._varname = void 0;
       if (module_or_name instanceof window.SUITE.Module) {
         this._module = module_or_name;
@@ -408,27 +545,28 @@
       Object.defineProperty(this, "width", {
         get: function() {
           var _ref;
-          return ((_ref = this._module.getWidth) != null ? _ref.call(this) : void 0) || parseInt(this.element.offsetWidth);
+          return ((_ref = this._module.getWidth) != null ? _ref.call(this._api) : void 0) || parseInt(this._rootElement.offsetWidth);
         }
       });
       Object.defineProperty(this, "height", {
         get: function() {
           var _ref;
-          return ((_ref = this._module.getHeight) != null ? _ref.call(this) : void 0) || parseInt(this.element.offsetHeight);
+          return ((_ref = this._module.getHeight) != null ? _ref.call(this._api) : void 0) || parseInt(this._rootElement.offsetHeight);
         }
       });
-      _ref = this._module.methods;
-      for (name in _ref) {
-        func = _ref[name];
-        this[name] = func.bind(this);
-      }
       this.slots = {};
-      _ref1 = this._module.slots;
-      for (name in _ref1) {
-        slot = _ref1[name];
+      _ref = this._module.slots;
+      for (name in _ref) {
+        slot = _ref[name];
         if (slot.isRepeated) {
           this.slots[name] = [];
         }
+      }
+      this._api = new SUITE.ModuleAPI(this);
+      _ref1 = this._module.methods;
+      for (name in _ref1) {
+        func = _ref1[name];
+        this[name] = func.bind(this._api);
       }
     }
 
@@ -484,14 +622,14 @@
             return function(name, p) {
               if (p.setter != null) {
                 return function(val) {
-                  var oldval, setAttr;
+                  var oldval;
                   oldval = _this._values[name];
                   _this._values[name] = val;
-                  if (_this.element == null) {
+                  if (_this._rootElement == null) {
                     return;
                   }
-                  setAttr = SUITE.AttrFunctionFactory(_this.element, SUITE._currentTransition);
-                  return p.setter.call(_this, val, setAttr, oldval);
+                  _this._api._prepareAttrSetter();
+                  return p.setter.call(_this._api, val, oldval);
                 };
               } else {
                 return function(val) {
@@ -529,8 +667,10 @@
         }
         index = this.slots.length;
         this.slots[slotName].push(component);
+        this._api.slots[slotName].push(component._api);
       } else {
         this.slots[slotName] = component;
+        this._api.slots[slotName] = component._api;
       }
       this.rerender();
       return index;
@@ -545,6 +685,7 @@
       }
       this.slots[slotName][index].parent = void 0;
       this.slots[slotName].splice(index, 1);
+      this._api.slots[slotName].splice(index, 1);
       return true;
     };
 
@@ -563,6 +704,7 @@
         this.slots[slotName].parent = void 0;
       }
       delete this.slots[slotName];
+      delete this._api.slots[slotName];
       return this.rerender();
     };
 
@@ -597,50 +739,35 @@
     };
 
     Component.prototype.render = function() {
-      var c, name, rendered_slots, slot, _ref;
+      var cleanup;
       if (this._module.render == null) {
         return;
       }
-      rendered_slots = {};
-      _ref = this.slots;
-      for (name in _ref) {
-        slot = _ref[name];
-        if (slot instanceof Array) {
-          rendered_slots[name] = (function() {
-            var _i, _len, _results;
-            _results = [];
-            for (_i = 0, _len = slot.length; _i < _len; _i++) {
-              c = slot[_i];
-              _results.push(c.render());
-            }
-            return _results;
-          })();
-        } else if (slot != null) {
-          rendered_slots[name] = slot.render();
-        }
-      }
-      this.element = this._module.render.call(this, rendered_slots, this._module["super"]);
+      cleanup = this._api._prepare(this._module["super"], "render");
+      this._rootElement = this._module.render.call(this._api, this.slots);
+      cleanup();
       this.bindEventListeners();
-      return this.element;
+      return this._rootElement;
     };
 
     Component.prototype.rerender = function() {
       var olddom;
-      if (this.element == null) {
+      if (this._rootElement == null) {
         return;
       }
-      olddom = this.element;
+      olddom = this._rootElement;
       this.render();
-      olddom.parentNode.insertBefore(this.element, olddom);
+      olddom.parentNode.insertBefore(this._rootElement, olddom);
       olddom.parentNode.removeChild(olddom);
-      return this.element;
+      return this._rootElement;
     };
 
     Component.prototype.resize = function(size) {
       if (this._module.onResize == null) {
         return;
       }
-      return this._module.onResize.call(this, size);
+      this._api._prepareAttrSetter();
+      return this._module.onResize.call(this._api, size);
     };
 
     Component.prototype.bindEventListeners = function() {
@@ -649,7 +776,7 @@
       _results = [];
       for (name in _ref) {
         func = _ref[name];
-        _results.push(this.element.addEventListener(name, func.bind(this)));
+        _results.push(this._rootElement.addEventListener(name, func.bind(this)));
       }
       return _results;
     };
@@ -901,35 +1028,35 @@
 
 }).call(this);
 (function() {
-  new window.SUITE.ModuleBuilder("visible-element").addProperty("id", [SUITE.PrimitiveType.String], "", function(val, setAttrs) {
-    return setAttrs({
+  new window.SUITE.ModuleBuilder("visible-element").addProperty("id", [SUITE.PrimitiveType.String], "", function(val) {
+    return this.setAttrs({
       "id": val
     });
-  }).addProperty("class", [SUITE.PrimitiveType.String], "", function(val, setAttrs) {
-    return setAttrs({
+  }).addProperty("class", [SUITE.PrimitiveType.String], "", function(val) {
+    return this.setAttrs({
       "class": val
     });
-  }).addProperty("x", [SUITE.PrimitiveType.Number], 0, function(val, setAttrs) {
-    return setAttrs({
+  }).addProperty("x", [SUITE.PrimitiveType.Number], 0, function(val) {
+    return this.setAttrs({
       "left": val + "px"
     });
-  }).addProperty("y", [SUITE.PrimitiveType.Number], 0, function(val, setAttrs) {
-    return setAttrs({
+  }).addProperty("y", [SUITE.PrimitiveType.Number], 0, function(val) {
+    return this.setAttrs({
       "top": val + "px"
     });
-  }).addProperty("width", [SUITE.PrimitiveType.Number], 0, function(val, setAttrs) {
-    return setAttrs({
+  }).addProperty("width", [SUITE.PrimitiveType.Number], 0, function(val) {
+    return this.setAttrs({
       "width": val + "px"
     });
-  }).addProperty("height", [SUITE.PrimitiveType.Number], 0, function(val, setAttrs) {
-    return setAttrs({
+  }).addProperty("height", [SUITE.PrimitiveType.Number], 0, function(val) {
+    return this.setAttrs({
       "height": val + "px"
     });
   }).setRenderer(function() {
     var div;
-    div = document.createElement("div");
+    div = this.createElement("div");
     if (window.SUITE.config.component_attribute) {
-      div.setAttribute("data-component", this.type);
+      div.setAttribute("data-component", this._.type);
     }
     if (this.$id !== "") {
       div.setAttribute("id", this.$id);
@@ -944,22 +1071,34 @@
     return div;
   }).register();
 
+  new window.SUITE.ModuleBuilder("button").extend("visible-element").addProperty("onClick", [SUITE.PrimitiveType.Function], void 0, function(val, _, oldVal) {
+    if (oldVal != null) {
+      this._rootElement.removeEventListener("click", oldVal);
+    }
+    return this._rootElement.addEventListener("click", val);
+  }).setRenderer(function() {
+    var div;
+    div = this["super"]();
+    div.addEventListener("click", this.$onClick);
+    return div;
+  });
+
 }).call(this);
 (function() {
   new window.SUITE.ModuleBuilder("container").extend("visible-element").addSlot("children", true).addMethod("addChild", function(child) {
     return this.fillSlot("children", child);
-  }).addProperty("fill", [SUITE.PrimitiveType.Color], "none", function(val, setAttrs) {
-    return setAttrs({
+  }).addProperty("fill", [SUITE.PrimitiveType.Color], "none", function(val) {
+    return this.setAttrs({
       backgroundColor: val
     });
-  }).setRenderer(function(slots, super_mod) {
+  }).setRenderer(function() {
     var div, slot, _i, _len, _ref;
-    div = super_mod.render.call(this, slots, super_mod["super"]);
+    div = this["super"]();
     div.style.backgroundColor = this.$fill;
-    _ref = slots.children;
+    _ref = this.slots.children;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       slot = _ref[_i];
-      div.appendChild(slot);
+      div.appendChild(this.renderSlot(slot));
     }
     return div;
   }).setOnResize(function(size) {
@@ -979,19 +1118,19 @@
 (function() {
   new window.SUITE.ModuleBuilder("dialog-container").extend("container").addSlot("dialog", false, function(type) {
     return type === "dialog";
-  }).addProperty("overlayColor", [SUITE.PrimitiveType.Color], "black", function(val, setAttrs) {
+  }).addProperty("overlayColor", [SUITE.PrimitiveType.Color], "black", function(val) {
     if (displayed) {
-      return setAttrs(this.overlay_container, {
+      return this.setAttrs(this.getElement("overlay"), {
         backgroundColor: val
       });
     }
-  }).addProperty("overlayOpacity", [SUITE.PrimitiveType.Number], 0.6, function(val, setAttrs) {
+  }).addProperty("overlayOpacity", [SUITE.PrimitiveType.Number], 0.6, function(val) {
     if (displayed) {
-      return setAttrs(this.overlay_container, {
+      return this.setAttrs(this.getElement("dialog"), {
         opacity: val
       });
     }
-  }).addProperty("displayed", [SUITE.PrimitiveType.Boolean], false, function(val, setAttrs, oldval) {
+  }).addProperty("displayed", [SUITE.PrimitiveType.Boolean], false, function(val, oldval) {
     var dc, dialog, oc;
     if (oldval === val) {
       return;
@@ -1002,31 +1141,31 @@
         return;
       }
       dialog = this.slots.dialog;
-      oc = this.overlay_container = document.createElement("div");
+      oc = this.createElement("overlay", "div");
       oc.style.top = 0;
       oc.style.left = 0;
       oc.style.width = this.width + "px";
       oc.style.height = this.height + "px";
       oc.style.zIndex = 899;
-      setAttrs(oc, {
+      this.setAttrs(oc, {
         backgroundColor: this.$overlayColor,
         opacity: this.$overlayOpacity
       });
-      dc = this.dialog_container = dialog.render();
+      dc = this.renderSlot("dialog", dialog);
       dc.style.width = dialog.width + "px";
       dc.style.height = dialog.height + "px";
       dc.style.left = this.width / 2 - dialog.width / 2 + "px";
       dc.style.top = this.height / 2 - dialog.height / 2 + "px";
       dc.style.zIndex = 900;
       dc.style.opacity = 0;
-      setAttrs(dc, {
+      this.setAttrs(dc, {
         opacity: 1
       });
-      this.element.appendChild(oc);
-      return this.element.appendChild(dc);
+      this.appendElement("overlay");
+      return this.appendElement("dialog");
     } else {
-      this.overlay_container.parentNode.removeChild(this.overlay_container);
-      return this.dialog_container.parentNode.removeChild(this.dialog_container);
+      this.removeElement("overlay");
+      return this.removeElement("dialog");
     }
   }).addMethod("hideDialog", function() {
     return this.$displayed = false;
@@ -1037,16 +1176,16 @@
     return this.$displayed = true;
   }).setRenderer(function(slots, superclass) {
     var div;
-    div = superclass.render.call(this, slots, superclass["super"]);
+    div = this["super"]();
     if (this.$displayed) {
-      this._values.displayed = false;
+      this.$displayed = false;
       wait(1, function() {
         return this.$displayed = true;
       });
     }
     return div;
   }).setOnResize(function(size) {
-    var dialog, slot, _i, _len, _ref;
+    var dialog, dialog_element, overlay_element, slot, _i, _len, _ref;
     this.$width = size.width;
     this.$height = size.height;
     _ref = this.slots.children;
@@ -1057,12 +1196,14 @@
     if (this.$displayed) {
       dialog = this.slots.dialog;
       dialog.resize(size);
-      this.overlay_container.style.width = size.width + "px";
-      this.overlay_container.style.height = size.height + "px";
-      this.dialog_container.style.width = dialog.width + "px";
-      this.dialog_container.style.height = dialog.height + "px";
-      this.dialog_container.style.left = size.width / 2 - dialog.width / 2 + "px";
-      return this.dialog_container.style.top = size.height / 2 - dialog.height / 2 + "px";
+      overlay_element = this.getElement("overlay");
+      dialog_element = this.getElement("dialog");
+      overlay_element.style.width = size.width + "px";
+      overlay_element.style.height = size.height + "px";
+      dialog_element.style.width = dialog.width + "px";
+      dialog_element.style.height = dialog.height + "px";
+      dialog_element.style.left = size.width / 2 - dialog.width / 2 + "px";
+      return dialog_element.style.top = size.height / 2 - dialog.height / 2 + "px";
     }
   }).register();
 

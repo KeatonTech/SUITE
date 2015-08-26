@@ -6,14 +6,14 @@ new window.SUITE.ModuleBuilder("container")
   .addMethod "addChild", (child)-> @fillSlot "children", child
 
   # SVG Fill property w/ setter
-  .addProperty "fill", [SUITE.PrimitiveType.Color], "none", (val, setAttrs)->
-    setAttrs backgroundColor: val
+  .addProperty "fill", [SUITE.PrimitiveType.Color], "none", (val)->
+    @setAttrs backgroundColor: val
 
   # Rendered as a group, does not enforce any layout
-  .setRenderer (slots, super_mod)->
-    div = super_mod.render.call this, slots, super_mod.super
+  .setRenderer ()->
+    div = @super()
     div.style.backgroundColor = @$fill
-    div.appendChild(slot) for slot in slots.children
+    div.appendChild(@renderSlot slot) for slot in @slots.children
     return div
 
   # Containers fill their available space

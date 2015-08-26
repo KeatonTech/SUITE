@@ -1,9 +1,11 @@
 # Represents an instance of a VUE component
 class window.SUITE.Component
   constructor: (module_or_name)->
-    @element = undefined    # Rendered HTML element
-    @parent = undefined     # Parent component
-    @_varname = undefined   # Stores this component's template variable name when applicable
+    @parent = undefined           # Parent component
+
+    @_rootElement = undefined     # Rendered HTML element
+    @_elements = {}               # Stores named HTML elements rendered by this module
+    @_varname = undefined         # Stores this component's template variable name
 
     if module_or_name instanceof window.SUITE.Module
       @_module = module_or_name
@@ -18,19 +20,23 @@ class window.SUITE.Component
 
     # Other special properties
     Object.defineProperty this, "width",
-      get: ()-> @_module.getWidth?.call(this) || parseInt @element.offsetWidth
+      get: ()-> @_module.getWidth?.call(@_api) || parseInt @_rootElement.offsetWidth
 
     Object.defineProperty this, "height",
-      get: ()-> @_module.getHeight?.call(this) || parseInt @element.offsetHeight
-
-    # Add custom methods from the module
-    for name, func of @_module.methods
-      @[name] = func.bind this
+      get: ()-> @_module.getHeight?.call(@_api) || parseInt @_rootElement.offsetHeight
 
     # Add empty arrays for repeated slots
     @slots = {}
     for name, slot of @_module.slots when slot.isRepeated
       @slots[name] = []
+
+    # Create an instance of the Module API, which allows the owner module to interact with
+    # this component in an easy but safe way.
+    @_api = new SUITE.ModuleAPI this
+
+    # Add custom methods from the module
+    for name, func of @_module.methods
+      @[name] = func.bind @_api
 
   copy: ()->
     copy = new SUITE.Component @type
@@ -62,9 +68,9 @@ class window.SUITE.Component
             if p.setter? then (val)=>
               oldval = @_values[name]
               @_values[name] = val
-              if !@element? then return
-              setAttr = SUITE.AttrFunctionFactory @element, SUITE._currentTransition
-              p.setter.call this, val, setAttr, oldval
+              if !@_rootElement? then return
+              @_api._prepareAttrSetter()
+              p.setter.call @_api, val, oldval
             else (val)=>
               @_values[name] = val
               @rerender()
@@ -87,8 +93,10 @@ class window.SUITE.Component
       if !(slotName in @slots) then @slots[slotName] = []
       index = @slots.length
       @slots[slotName].push component
+      @_api.slots[slotName].push component._api
     else
       @slots[slotName] = component
+      @_api.slots[slotName] = component._api
 
     @rerender()
     return index # 0 for non-repeated slots
@@ -99,6 +107,7 @@ class window.SUITE.Component
     if !(@slots[slotName] instanceof Array) then return false
     @slots[slotName][index].parent = undefined
     @slots[slotName].splice index, 1
+    @_api.slots[slotName].splice index, 1
     return true
 
   # Remove all components in a slot
@@ -109,6 +118,7 @@ class window.SUITE.Component
     else
       @slots[slotName].parent = undefined
     delete @slots[slotName]
+    delete @_api.slots[slotName]
     @rerender()
 
   # List all 'child' elements in any slot
@@ -135,33 +145,31 @@ class window.SUITE.Component
   render: ()->
     if !@_module.render? then return
 
-    rendered_slots = {}
-    for name, slot of @slots
-      if slot instanceof Array
-        rendered_slots[name] = (c.render() for c in slot)
-      else if slot?
-        rendered_slots[name] = slot.render()
+    # Run the module's render function with the appropriate super function
+    cleanup = @_api._prepare @_module.super, "render"
+    @_rootElement = @_module.render.call @_api, @slots
+    cleanup()
 
-    @element = @_module.render.call this, rendered_slots, @_module.super
     @bindEventListeners()
-    return @element
+    return @_rootElement
 
   rerender: ()->
-    if !@element? then return
-    olddom = @element
+    if !@_rootElement? then return
+    olddom = @_rootElement
     @render()
-    olddom.parentNode.insertBefore @element, olddom
+    olddom.parentNode.insertBefore @_rootElement, olddom
     olddom.parentNode.removeChild olddom
-    return @element
+    return @_rootElement
 
   # EVENT HANDLERS ==========================================================================
 
   # Resize events
   resize: (size)->
     if !@_module.onResize? then return
-    @_module.onResize.call this, size
+    @_api._prepareAttrSetter()
+    @_module.onResize.call @_api, size
 
   # Other events
   bindEventListeners: ()->
     for name, func of @_module.events
-      @element.addEventListener name, func.bind this
+      @_rootElement.addEventListener name, func.bind this

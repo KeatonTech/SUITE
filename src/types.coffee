@@ -5,19 +5,9 @@ window.SUITE.PrimitiveType = {
   'Boolean': 1
   'String': 2
   'Color': 3
-  'Component': 4
+  'Function': 4
   'Number': 8
-
-  # This will come in handy later, probably
-  ## Unitted Types (Subclass of Number)
-  #'px': 9
-  #'pt': 10
-  #'em': 11
-  #'percent': 12
-  #'vw': 17
-  #'vh': 18
-  #'vmin': 19
-  #'vmax': 20
+  'Component': 16
 
   # Container Types
   'Single': 0

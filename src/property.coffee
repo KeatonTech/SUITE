@@ -15,6 +15,14 @@ class window.SUITE.Property
     if setter? then @setter = setter
 
 
+# Property that holds a function
+class window.SUITE.EventListenerProperty extends window.SUITE.Property
+  constructor: (listener, element_name, setter, default_val) ->
+    super SUITE.PrimitiveType.Function, default_val, setter
+    @listener = listener
+    @element = element_name
+
+
 # A special kind of property that responds to events from the bound component.
 # Can also accept an array of components. The handlers will be applied to all of them.
 class window.SUITE.ComponentProperty
