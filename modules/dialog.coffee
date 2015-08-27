@@ -1,7 +1,7 @@
 # Dialogs can only be displayed inside of a special dialog container
 new window.SUITE.ModuleBuilder("dialog-container")
   .extend("container")
-  .addSlot "dialog", false, (type)-> type == "dialog"
+  .addSlot "dialog", false, (type)-> type == "floating-box"
 
   # Dialog styling properties
   .addProperty "overlayColor", [SUITE.PrimitiveType.Color], "black"
@@ -13,10 +13,6 @@ new window.SUITE.ModuleBuilder("dialog-container")
     zIndex: 899
 
   .addStyle "dialog",
-    top: ()-> @$height / 2 - @slots.dialog.$height / 2
-    left: ()-> @$width / 2 - @slots.dialog.$width / 2
-    width: ()-> @slots.dialog.$width
-    height: ()-> @slots.dialog.$height
     zIndex: 900
     opacity: 0
 
@@ -34,6 +30,7 @@ new window.SUITE.ModuleBuilder("dialog-container")
       @applyStyle oc, "sized"
       @applyStyle oc, "overlay"
 
+      dialog.resize @size
       dc = @renderSlot "dialog", dialog
       @applyStyle dc, "dialog"
 
@@ -68,43 +65,6 @@ new window.SUITE.ModuleBuilder("dialog-container")
     @$height = size.height
     slot.resize(size) for slot in @slots.children
 
-    if @$displayed
-      dialog = @slots.dialog
-      dialog.resize size
-
-      dialog_element = @getElement "dialog"
-
-      @forceAttrs @getElement("dialog"),
-        width: dialog.$width
-        height: dialog.$height
-        left: size.width / 2 - dialog.$width / 2
-        top: size.height / 2 - dialog.$height / 2
-
-  .register()
-
-# The actual dialog is just a container with some special sizing stuff
-new window.SUITE.ModuleBuilder("dialog")
-  .extend("container")
-  .removeProperty "x"
-  .removeProperty "y"
-
-  # Dialogs scale down when necessary
-  .addProperty "minWidth", [SUITE.PrimitiveType.Number], 0
-  .addProperty "minHeight", [SUITE.PrimitiveType.Number], 0
-  .addProperty "maxWidth", [SUITE.PrimitiveType.Number], 640
-  .addProperty "maxHeight", [SUITE.PrimitiveType.Number], 480
-
-  .setInitializer ()->
-    @$width = @$maxWidth
-    @$height = @$maxHeight
-
-  .setOnResize (size)->
-    @$width = parseInt Math.max(Math.min(size.width, @$maxWidth), @$minWidth)
-    @$height = parseInt Math.max(Math.min(size.height, @$maxHeight), @$minHeight)
-
-  .setRenderer ()->
-    div = @super()
-    @applyStyle div, "sized"
-    return div
+    if @$displayed then @slots.dialog.resize size
 
   .register()

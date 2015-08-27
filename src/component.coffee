@@ -183,8 +183,9 @@ class window.SUITE.Component
   # Resize events
   resize: (size)->
     if !@_module.onResize? then return
-    @_api._prepareAttrSetter()
+    cleanup = @_api._prepare @_module.super, "onResize"
     @_module.onResize.call @_api, size
+    cleanup()
 
   # Other events
   bindEventListeners: ()->

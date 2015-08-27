@@ -45,4 +45,5 @@ window.SUITE =
 # BUILT-IN COMPONENT IMPORTS ================================================================
 #@prepros-append ../modules/core.coffee
 #@prepros-append ../modules/container.coffee
+#@prepros-append ../modules/box.coffee
 #@prepros-append ../modules/dialog.coffee

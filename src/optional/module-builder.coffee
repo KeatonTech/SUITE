@@ -40,6 +40,11 @@ class window.SUITE.ModuleBuilder
     @module.addStyle name, style
     return this
 
+  # Only necessary when used with copyFrom
+  removeStyle: (name)->
+    if @module.styles[name] then delete @module.styles[name]
+    return this
+
   setRenderer: (renderFunction)->
     @module.render = renderFunction
     return this

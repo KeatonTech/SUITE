@@ -600,14 +600,12 @@
         prefixed = "$" + name;
         Object.defineProperty(this, prefixed, Object.getOwnPropertyDescriptor(this._, prefixed));
       }
-      Object.defineProperty(this, "width", {
+      Object.defineProperty(this, "size", {
         get: function() {
-          return this._.width;
-        }
-      });
-      Object.defineProperty(this, "height", {
-        get: function() {
-          return this._.height;
+          return {
+            width: this.$width,
+            height: this.$height
+          };
         }
       });
       this.resize = this._.resize.bind(this._);
@@ -970,11 +968,13 @@
     };
 
     Component.prototype.resize = function(size) {
+      var cleanup;
       if (this._module.onResize == null) {
         return;
       }
-      this._api._prepareAttrSetter();
-      return this._module.onResize.call(this._api, size);
+      cleanup = this._api._prepare(this._module["super"], "onResize");
+      this._module.onResize.call(this._api, size);
+      return cleanup();
     };
 
     Component.prototype.bindEventListeners = function() {
@@ -1131,6 +1131,13 @@
       var style;
       style = new SUITE.Style(name, attributes);
       this.module.addStyle(name, style);
+      return this;
+    };
+
+    ModuleBuilder.prototype.removeStyle = function(name) {
+      if (this.module.styles[name]) {
+        delete this.module.styles[name];
+      }
       return this;
     };
 
@@ -1310,10 +1317,6 @@
 (function() {
   new window.SUITE.ModuleBuilder("container").extend("visible-element").addSlot("children", true).addMethod("addChild", function(child) {
     return this.fillSlot("children", child);
-  }).addProperty("fill", [SUITE.PrimitiveType.Color], "none", function(val) {
-    return this.setAttrs({
-      backgroundColor: val
-    });
   }).setRenderer(function() {
     var div, slot, _i, _len, _ref;
     div = this["super"]();
@@ -1339,8 +1342,50 @@
 
 }).call(this);
 (function() {
+  new window.SUITE.ModuleBuilder("box").extend("container").addProperty("minWidth", [SUITE.PrimitiveType.Number]).addProperty("minHeight", [SUITE.PrimitiveType.Number]).addProperty("maxWidth", [SUITE.PrimitiveType.Number]).addProperty("maxHeight", [SUITE.PrimitiveType.Number]).setInitializer(function() {
+    if (this.$maxWidth == null) {
+      this.$maxWidth = this.$width;
+    }
+    if (this.$minWidth == null) {
+      this.$minWidth = this.$width;
+    }
+    if (this.$maxHeight == null) {
+      this.$maxHeight = this.$height;
+    }
+    if (this.$minHeight == null) {
+      return this.$minHeight = this.$height;
+    }
+  }).setOnResize(function(size) {
+    if ((this.$maxWidth != null) && (this.$minWidth != null)) {
+      this.$width = parseInt(Math.max(Math.min(size.width, this.$maxWidth), this.$minWidth));
+    }
+    if ((this.$maxHeight != null) && (this.$minHeight != null)) {
+      return this.$height = parseInt(Math.max(Math.min(size.height, this.$maxHeight), this.$minHeight));
+    }
+  }).register();
+
+  new window.SUITE.ModuleBuilder("floating-box").extend("box").removeProperty("x").removeProperty("y").removeStyle("positioned").addProperty("floatX", [SUITE.PrimitiveType.Number], 0.5).addProperty("floatY", [SUITE.PrimitiveType.Number], 0.5).addProperty("containerWidth", [SUITE.PrimitiveType.Number]).addProperty("containerHeight", [SUITE.PrimitiveType.Number]).setOnResize(function(size) {
+    this["super"](size);
+    this.$containerWidth = size.width;
+    return this.$containerHeight = size.height;
+  }).addStyle("floating", {
+    left: function() {
+      return this.$containerWidth / 2 - this.$width / 2;
+    },
+    top: function() {
+      return this.$containerHeight / 2 - this.$height / 2;
+    }
+  }).setRenderer(function() {
+    var div;
+    div = this["super"]();
+    this.applyStyle(div, "floating");
+    return div;
+  }).register();
+
+}).call(this);
+(function() {
   new window.SUITE.ModuleBuilder("dialog-container").extend("container").addSlot("dialog", false, function(type) {
-    return type === "dialog";
+    return type === "floating-box";
   }).addProperty("overlayColor", [SUITE.PrimitiveType.Color], "black").addProperty("overlayOpacity", [SUITE.PrimitiveType.Number], 0.6).addStyle("overlay", {
     backgroundColor: function() {
       return this.$overlayColor;
@@ -1350,18 +1395,6 @@
     },
     zIndex: 899
   }).addStyle("dialog", {
-    top: function() {
-      return this.$height / 2 - this.slots.dialog.$height / 2;
-    },
-    left: function() {
-      return this.$width / 2 - this.slots.dialog.$width / 2;
-    },
-    width: function() {
-      return this.slots.dialog.$width;
-    },
-    height: function() {
-      return this.slots.dialog.$height;
-    },
     zIndex: 900,
     opacity: 0
   }).addProperty("displayed", [SUITE.PrimitiveType.Boolean], false, function(val, oldval) {
@@ -1379,6 +1412,7 @@
       this.applyStyle(oc, "positioned");
       this.applyStyle(oc, "sized");
       this.applyStyle(oc, "overlay");
+      dialog.resize(this.size);
       dc = this.renderSlot("dialog", dialog);
       this.applyStyle(dc, "dialog");
       this.setAttrs(dc, {
@@ -1408,7 +1442,7 @@
     }
     return div;
   }).setOnResize(function(size) {
-    var dialog, dialog_element, slot, _i, _len, _ref;
+    var slot, _i, _len, _ref;
     this.$width = size.width;
     this.$height = size.height;
     _ref = this.slots.children;
@@ -1417,29 +1451,8 @@
       slot.resize(size);
     }
     if (this.$displayed) {
-      dialog = this.slots.dialog;
-      dialog.resize(size);
-      dialog_element = this.getElement("dialog");
-      return this.forceAttrs(this.getElement("dialog"), {
-        width: dialog.$width,
-        height: dialog.$height,
-        left: size.width / 2 - dialog.$width / 2,
-        top: size.height / 2 - dialog.$height / 2
-      });
+      return this.slots.dialog.resize(size);
     }
-  }).register();
-
-  new window.SUITE.ModuleBuilder("dialog").extend("container").removeProperty("x").removeProperty("y").addProperty("minWidth", [SUITE.PrimitiveType.Number], 0).addProperty("minHeight", [SUITE.PrimitiveType.Number], 0).addProperty("maxWidth", [SUITE.PrimitiveType.Number], 640).addProperty("maxHeight", [SUITE.PrimitiveType.Number], 480).setInitializer(function() {
-    this.$width = this.$maxWidth;
-    return this.$height = this.$maxHeight;
-  }).setOnResize(function(size) {
-    this.$width = parseInt(Math.max(Math.min(size.width, this.$maxWidth), this.$minWidth));
-    return this.$height = parseInt(Math.max(Math.min(size.height, this.$maxHeight), this.$minHeight));
-  }).setRenderer(function() {
-    var div;
-    div = this["super"]();
-    this.applyStyle(div, "sized");
-    return div;
   }).register();
 
 }).call(this);

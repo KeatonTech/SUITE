@@ -16,8 +16,7 @@ class window.SUITE.ModuleAPI
       prefixed = "$" + name
       Object.defineProperty @, prefixed, Object.getOwnPropertyDescriptor @_, prefixed
 
-    Object.defineProperty @, "width", get: ()-> return @_.width
-    Object.defineProperty @, "height", get: ()-> return @_.height
+    Object.defineProperty @, "size", get: ()-> return {width: @$width, height: @$height}
 
     # Passthrough
     @resize = @_.resize.bind @_
