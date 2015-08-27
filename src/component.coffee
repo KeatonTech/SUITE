@@ -65,9 +65,9 @@ class window.SUITE.Component
               oldval = @_values[name]
               @_values[name] = val
               if !@_rootElement? then return
-              @_runPropertyChangeListeners name, val, oldval
               @_api._prepareAttrSetter()
               p.setter.call @_api, val, oldval
+              @_runPropertyChangeListeners name, val, oldval
             else (val)=>
               oldval = @_values[name]
               @_values[name] = val

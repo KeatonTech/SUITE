@@ -419,7 +419,7 @@
     };
 
     Style.prototype.applyToElement = function(component, element) {
-      var attr, dsa, property, _, _ref, _ref1;
+      var attr, computed, dsa, property, _, _ref, _ref1;
       if (this.has_static) {
         window.SUITE.styleManager.addStyle(this);
         element.className += " " + this.id;
@@ -427,15 +427,24 @@
       _ref = this.dynamic;
       for (attr in _ref) {
         dsa = _ref[attr];
-        element.style[attr] = dsa["eval"](component._api);
+        computed = dsa["eval"](component._api);
+        if (computed != null) {
+          element.style[attr] = computed;
+        }
         _ref1 = dsa.dependencies;
         for (property in _ref1) {
           _ = _ref1[property];
-          component.addPropertyChangeListener(property, (function(attr, dsa, element, api) {
+          component.addPropertyChangeListener(property, (function(attr, dsa, element) {
             return function() {
-              return element.style[attr] = dsa["eval"](api);
+              var change;
+              change = {};
+              change[attr] = dsa["eval"](this);
+              if (change[attr] == null) {
+                return;
+              }
+              return this.setAttrs(element, change);
             };
-          })(attr, dsa, element, component._api));
+          })(attr, dsa, element));
         }
       }
       return true;
@@ -464,6 +473,9 @@
         return this._eval.call(moduleAPI);
       } else {
         result = this._eval.call(moduleAPI);
+        if (result == null) {
+          return void 0;
+        }
         if (typeof result === "number") {
           result = result + "px";
         }
@@ -792,9 +804,9 @@
                   if (_this._rootElement == null) {
                     return;
                   }
-                  _this._runPropertyChangeListeners(name, val, oldval);
                   _this._api._prepareAttrSetter();
-                  return p.setter.call(_this._api, val, oldval);
+                  p.setter.call(_this._api, val, oldval);
+                  return _this._runPropertyChangeListeners(name, val, oldval);
                 };
               } else {
                 return function(val) {
@@ -1248,6 +1260,22 @@
     height: function() {
       return this.$height;
     }
+  }).addProperty("fill", [SUITE.PrimitiveType.Color]).addProperty("stroke", [SUITE.PrimitiveType.Color]).addProperty("strokeWidth", [SUITE.PrimitiveType.Number]).addProperty("shadow", [SUITE.PrimitiveType.String]).addProperty("cornerRadius", [SUITE.PrimitiveType.Number]).addStyle("styled", {
+    backgroundColor: function() {
+      return this.$fill;
+    },
+    borderColor: function() {
+      return this.$stroke;
+    },
+    borderWidth: function() {
+      return this.$strokeWidth;
+    },
+    borderRadius: function() {
+      return this.$cornerRadius;
+    },
+    boxShadow: function() {
+      return this.$shadow;
+    }
   }).setRenderer(function() {
     var div;
     div = this.createElement("div");
@@ -1262,6 +1290,7 @@
     }
     this.applyStyle(div, "positioned");
     this.applyStyle(div, "sized");
+    this.applyStyle(div, "styled");
     return div;
   }).register();
 

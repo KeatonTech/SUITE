@@ -74,13 +74,17 @@ class window.SUITE.Style
 
     # Apply dynamic attributes directly to the element
     for attr, dsa of @dynamic
-      element.style[attr] = dsa.eval component._api
+      computed = dsa.eval component._api
+      if computed? then  element.style[attr] = computed
 
       # Add listeners so the style is updated when a property it depends on changes
       for property, _ of dsa.dependencies
-        component.addPropertyChangeListener property, ((attr, dsa, element, api)-> ()->
-          element.style[attr] = dsa.eval api
-        )(attr, dsa, element, component._api)
+        component.addPropertyChangeListener property, ((attr, dsa, element)-> ()->
+          change = {}
+          change[attr] = dsa.eval @
+          if !change[attr]? then return
+          @setAttrs element, change
+        )(attr, dsa, element)
 
     return true
 
@@ -102,5 +106,6 @@ class window.SUITE.DynamicStyleAttribute
     if !@needs_unit then @_eval.call moduleAPI
     else
       result = @_eval.call moduleAPI
+      if !result? then return undefined
       if typeof result is "number" then result = result + "px"
       return result
