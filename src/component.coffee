@@ -18,13 +18,6 @@ class window.SUITE.Component
     # Sets up bindings for each declared property
     @_setupPropertyBindings()
 
-    # Other special properties
-    Object.defineProperty this, "width",
-      get: ()-> @_module.getWidth?.call(@_api) || parseInt @_rootElement.offsetWidth
-
-    Object.defineProperty this, "height",
-      get: ()-> @_module.getHeight?.call(@_api) || parseInt @_rootElement.offsetHeight
-
     # Add empty arrays for repeated slots
     @slots = {}
     for name, slot of @_module.slots when slot.isRepeated
@@ -37,6 +30,9 @@ class window.SUITE.Component
     # Add custom methods from the module
     for name, func of @_module.methods
       @[name] = func.bind @_api
+
+    # Prepare for property change listeners
+    @_changeListeners = {}
 
   copy: ()->
     copy = new SUITE.Component @type
@@ -69,15 +65,30 @@ class window.SUITE.Component
               oldval = @_values[name]
               @_values[name] = val
               if !@_rootElement? then return
+              @_runPropertyChangeListeners name, val, oldval
               @_api._prepareAttrSetter()
               p.setter.call @_api, val, oldval
             else (val)=>
+              oldval = @_values[name]
               @_values[name] = val
-              @rerender()
+              @_runPropertyChangeListeners name, val, oldval
           )(name, p)
+
+  # Runs property change listeners
+  _runPropertyChangeListeners: (property_name, val, oldval)->
+    if @_changeListeners[property_name]?
+      listener.call(@_api, val, oldval) for listener in @_changeListeners[property_name]
+      return true
+    return false
+
+  # Adds a change listener that runs whenever a property value is changed
+  addPropertyChangeListener: (property_name, func)->
+    if !@_changeListeners[property_name]? then @_changeListeners[property_name] = []
+    @_changeListeners[property_name].push func
 
   # Checks to see if a component has a property
   hasPropertyValue: (name)-> return @_module.properties[name]?
+
 
   # SLOTS ===================================================================================
 
@@ -142,8 +153,14 @@ class window.SUITE.Component
 
   # HTML GENERATION =========================================================================
 
-  render: ()->
+  render: (first_render = true)->
     if !@_module.render? then return
+
+    # If this is the first render, initialize the component
+    if first_render
+      cleanup = @_api._prepare @_module.super, "initialize"
+      @_module.initialize.call @_api
+      cleanup()
 
     # Run the module's render function with the appropriate super function
     cleanup = @_api._prepare @_module.super, "render"
@@ -156,7 +173,7 @@ class window.SUITE.Component
   rerender: ()->
     if !@_rootElement? then return
     olddom = @_rootElement
-    @render()
+    @render(false)
     olddom.parentNode.insertBefore @_rootElement, olddom
     olddom.parentNode.removeChild olddom
     return @_rootElement

@@ -64,14 +64,3 @@ window.SUITE.AttrFunctionFactory = (default_element, transition)->
       # Clean up the CSS3 transitions
       wait 5, ()->
         element.setAttribute("style", element.getAttribute("style").replace(full_style,""))
-
-
-# These attributes are unitless and therefore should not have 'px' appended to their values
-window.SUITE.UnitlessAttributes = [
-  "opacity",
-  "zIndex",
-  "fontWeight", "lineHeight",
-  "counterIncrement", "counterReset",
-  "flexGrow", "flexShrink",
-  "volume", "stress", "pitchRange", "richness"
-]

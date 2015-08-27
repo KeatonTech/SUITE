@@ -18,6 +18,8 @@ keeping things out of the DOM unless they are actually on-screen.
 * **Component:** The Suite equivalent of UIView/HTMLElement, represents a piece of the page.
 * **Module:** A type of component. Modules provide a number of functions that determine how
   the component is rendered and how it behaves.
+* **Style:** Essentially the same as a CSS style, but attributes can be javascript functions
+  that depend on object properties.
 * **Property:** Each module defines properties that can be set on any component of their type
   at runtime. Properties determine the content, style, and layout of components.
 * **Slot:** Some components contain other components, in the same way that a <div> can hold

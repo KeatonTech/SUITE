@@ -4,10 +4,21 @@ new window.SUITE.ModuleBuilder("dialog-container")
   .addSlot "dialog", false, (type)-> type == "dialog"
 
   # Dialog styling properties
-  .addProperty "overlayColor", [SUITE.PrimitiveType.Color], "black", (val)->
-    if displayed then @setAttrs @getElement("overlay"), backgroundColor: val
-  .addProperty "overlayOpacity", [SUITE.PrimitiveType.Number], 0.6, (val)->
-    if displayed then @setAttrs @getElement("dialog"), opacity: val
+  .addProperty "overlayColor", [SUITE.PrimitiveType.Color], "black"
+  .addProperty "overlayOpacity", [SUITE.PrimitiveType.Number], 0.6
+
+  .addStyle "overlay",
+    backgroundColor: ()-> @$overlayColor
+    opacity: ()-> @$overlayOpacity
+    zIndex: 899
+
+  .addStyle "dialog",
+    top: ()-> @$height / 2 - @slots.dialog.$height / 2
+    left: ()-> @$width / 2 - @slots.dialog.$width / 2
+    width: ()-> @slots.dialog.$width
+    height: ()-> @slots.dialog.$height
+    zIndex: 900
+    opacity: 0
 
   # This is where the HTML magic happens
   .addProperty "displayed", [SUITE.PrimitiveType.Boolean], false, (val, oldval)->
@@ -19,25 +30,12 @@ new window.SUITE.ModuleBuilder("dialog-container")
       dialog = @slots.dialog
 
       oc = @createElement "overlay", "div"
-      @forceAttrs oc,
-        top: 0, left: 0,
-        width: @width
-        height: @height
-        zIndex: 899
-
-      # Fade in if animated
-      @setAttrs oc,
-        backgroundColor: @$overlayColor
-        opacity: @$overlayOpacity
+      @applyStyle oc, "positioned"
+      @applyStyle oc, "sized"
+      @applyStyle oc, "overlay"
 
       dc = @renderSlot "dialog", dialog
-      @forceAttrs dc,
-        top: @height / 2 - dialog.height / 2
-        left: @width / 2 - dialog.width / 2
-        width: dialog.width
-        height: dialog.height
-        zIndex: 900
-        opacity: 0
+      @applyStyle dc, "dialog"
 
       # Fade in if animated
       @setAttrs dc, opacity: 1
@@ -57,7 +55,7 @@ new window.SUITE.ModuleBuilder("dialog-container")
     @$displayed = true
 
   # Doesn't need any special rendering unless the dialog is displayed
-  .setRenderer (slots, superclass)->
+  .setRenderer ()->
     div = @super()
     if @$displayed
       @$displayed = false
@@ -76,15 +74,11 @@ new window.SUITE.ModuleBuilder("dialog-container")
 
       dialog_element = @getElement "dialog"
 
-      @forceAttrs @getElement("overlay"),
-        width: size.width
-        height: size.height
-
       @forceAttrs @getElement("dialog"),
-        width: dialog.width
-        height: dialog.height
-        left: size.width / 2 - dialog.width / 2
-        top: size.height / 2 - dialog.height / 2
+        width: dialog.$width
+        height: dialog.$height
+        left: size.width / 2 - dialog.$width / 2
+        top: size.height / 2 - dialog.$height / 2
 
   .register()
 
@@ -97,12 +91,20 @@ new window.SUITE.ModuleBuilder("dialog")
   # Dialogs scale down when necessary
   .addProperty "minWidth", [SUITE.PrimitiveType.Number], 0
   .addProperty "minHeight", [SUITE.PrimitiveType.Number], 0
-  .setGetWidth ()->
-    return parseInt Math.max(Math.min(@_containerX||999999, @$width), @$minWidth)
-  .setGetHeight ()->
-    return parseInt Math.max(Math.min(@_containerY||999999, @$height), @$minHeight)
+  .addProperty "maxWidth", [SUITE.PrimitiveType.Number], 640
+  .addProperty "maxHeight", [SUITE.PrimitiveType.Number], 480
+
+  .setInitializer ()->
+    @$width = @$maxWidth
+    @$height = @$maxHeight
+
   .setOnResize (size)->
-    @_containerX = size.width
-    @_containerY = size.height
+    @$width = parseInt Math.max(Math.min(size.width, @$maxWidth), @$minWidth)
+    @$height = parseInt Math.max(Math.min(size.height, @$maxHeight), @$minHeight)
+
+  .setRenderer ()->
+    div = @super()
+    @applyStyle div, "sized"
+    return div
 
   .register()

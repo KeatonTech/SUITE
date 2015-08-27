@@ -15,10 +15,21 @@ class window.SUITE.Stage extends window.SUITE.Component
 
   render: ()->
     _sh.time "Full stage render", ()=>
+
+      # Get ready to track styles
+      new window.SUITE.StyleManager()
+
+      # Make sure the sizes are up to date
       @resize
         width: @html_container.offsetWidth
         height: @html_container.offsetHeight
+
+      # Full view tree render
       container = super()
+
+      # Add comment
       header_comment = document.createComment(SUITE.config.header)
+
+      # Bundle it all up
       container.insertBefore header_comment, container.firstChild
       @html_container.appendChild container

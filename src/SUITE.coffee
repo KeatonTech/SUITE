@@ -31,6 +31,7 @@ window.SUITE =
 #@prepros-append ./property.coffee
 #@prepros-append ./module.coffee
 #@prepros-append ./animation.coffee
+#@prepros-append ./style.coffee
 #@prepros-append ./attributes.coffee
 #@prepros-append ./module-api.coffee
 #@prepros-append ./component.coffee

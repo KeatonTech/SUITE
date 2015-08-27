@@ -22,9 +22,12 @@ class window.SUITE.ModuleAPI
     # Passthrough
     @resize = @_.resize.bind @_
     @render = @_.render.bind @_
+    @hasPropertyValue = @_.hasPropertyValue.bind @_
     @fillSlot = @_.fillSlot.bind @_
     @removeSlotComponent = @_.removeSlotComponent.bind @_
     @emptySlot = @_.emptySlot.bind @_
+    @allSlotComponents = @_.allSlotComponents.bind @_
+    @allSubComponents = @_.allSubComponents.bind @_
 
 
   # Prepares the API for use with the latest values
@@ -42,6 +45,8 @@ class window.SUITE.ModuleAPI
   # SIMPLE INHERITANCE ======================================================================
 
   _setSuper: (super_module, function_name)->
+    if !super_module? then @super = ()->
+
     @_super_module = super_module
     @_super_func = @_super_module[function_name]
 
@@ -49,7 +54,7 @@ class window.SUITE.ModuleAPI
       run = @_super_func
 
       # Move up a level so if this new function calls super it'll still work
-      @_super_module = @_super_module.super
+      @_super_module = @_super_module?.super
       @_super_func = @_super_module?[function_name]
 
       # Run the superfunction
@@ -78,6 +83,12 @@ class window.SUITE.ModuleAPI
     return @_._elements[elementName_or_tagName] = document.createElement tagName
 
   getElement: (name) -> return @_._elements[name]
+
+  applyStyle: (element, style_name) ->
+    style = @_._module.styles[style_name]
+    if !style? then return false
+    style.applyToElement @_, element
+    return true
 
 
   # SLOTS ===================================================================================

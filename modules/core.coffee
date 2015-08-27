@@ -5,14 +5,18 @@ new window.SUITE.ModuleBuilder("visible-element")
   .addProperty "class", [SUITE.PrimitiveType.String], "", (val)->
     @setAttrs "class": val
 
-  .addProperty "x", [SUITE.PrimitiveType.Number], 0, (val)->
-    @setAttrs "left": val
-  .addProperty "y", [SUITE.PrimitiveType.Number], 0, (val)->
-    @setAttrs "top": val
-  .addProperty "width", [SUITE.PrimitiveType.Number], 0, (val)->
-    @setAttrs "width": val
-  .addProperty "height", [SUITE.PrimitiveType.Number], 0, (val)->
-    @setAttrs "height": val
+  .addProperty "x", [SUITE.PrimitiveType.Number], 0
+  .addProperty "y", [SUITE.PrimitiveType.Number], 0
+  .addProperty "width", [SUITE.PrimitiveType.Number], 0
+  .addProperty "height", [SUITE.PrimitiveType.Number], 0
+
+  .addStyle "positioned",
+    left: ()-> @$x
+    top: ()-> @$y
+
+  .addStyle "sized",
+    width: ()-> @$width
+    height: ()-> @$height
 
   .setRenderer ()->
     div = @createElement "div"
@@ -24,10 +28,10 @@ new window.SUITE.ModuleBuilder("visible-element")
 
     if @$id != "" then div.setAttribute "id", @$id
     if @$class != "" then div.setAttribute "class", @$class
-    div.style.left = @$x + "px"
-    div.style.top = @$y + "px"
-    div.style.width = @$width + "px"
-    div.style.height = @$height + "px"
+
+    @applyStyle div, "positioned"
+    @applyStyle div, "sized"
+
     return div
 
   .register()

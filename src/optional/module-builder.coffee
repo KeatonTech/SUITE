@@ -35,20 +35,21 @@ class window.SUITE.ModuleBuilder
     @module.addMethod name, func
     return this
 
+  addStyle: (name, attributes)->
+    style = new SUITE.Style name, attributes
+    @module.addStyle name, style
+    return this
+
   setRenderer: (renderFunction)->
     @module.render = renderFunction
     return this
 
+  setInitializer: (initializeFunction)->
+    @module.initialize = initializeFunction
+    return this
+
   setOnResize: (resizedFunction)->
     @module.onResize = resizedFunction
-    return this
-
-  setGetWidth: (getWidthFunction)->
-    @module.getWidth = getWidthFunction
-    return this
-
-  setGetHeight: (getHeightFunction)->
-    @module.getHeight = getHeightFunction
     return this
 
   extend: (module_name)->
