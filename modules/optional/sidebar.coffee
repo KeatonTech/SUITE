@@ -31,12 +31,13 @@ new window.SUITE.ModuleBuilder("sidebar-layout")
     @slots.child.dispatchEvent "onResize"
     @$position = -@slots.child.$width
 
-    # Animate in
-    SUITE.AnimateChanges new SUITE.Transition(@$slideTime), ()=>
-      @$position = 0
+    # Animate in, after making sure the CSS changes have propogated
+    wait 5, ()=>
+      SUITE.AnimateChanges new SUITE.Transition(@$slideTime), ()=>
+        @$position = 0
 
-      # Let everybody know the sidebar is coming in
-      @dispatchEvent "onShow"
+        # Let everybody know the sidebar is coming in
+        @dispatchEvent "onShow"
 
   .addMethod "hide", ()->
 

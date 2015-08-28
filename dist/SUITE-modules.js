@@ -138,10 +138,12 @@
     });
     this.slots.child.dispatchEvent("onResize");
     this.$position = -this.slots.child.$width;
-    return SUITE.AnimateChanges(new SUITE.Transition(this.$slideTime), (function(_this) {
+    return wait(5, (function(_this) {
       return function() {
-        _this.$position = 0;
-        return _this.dispatchEvent("onShow");
+        return SUITE.AnimateChanges(new SUITE.Transition(_this.$slideTime), function() {
+          _this.$position = 0;
+          return _this.dispatchEvent("onShow");
+        });
       };
     })(this));
   }).addMethod("hide", function() {
