@@ -25,8 +25,8 @@ new window.SUITE.ModuleBuilder("visible-element")
 
   # IMPLEMENTATION ==========================================================================
 
-  .setRenderer ()->
-    div = @createElement "div"
+  .setRenderer (tag = "div")->
+    div = @createElement tag
 
     # Adds the [data-component] attribute. Accessing the component's type is not usually
     # supported, but we make an exception here by using the @_ backdoor to the Component.
@@ -63,10 +63,30 @@ new window.SUITE.ModuleBuilder("absolute-element")
     width: ()-> @$width
     height: ()-> @$height
 
-  .setRenderer ()->
-    div = @super()
+  .setRenderer (tag)->
+    div = @super(tag)
     @applyStyle div, "positioned"
     @applyStyle div, "sized"
     return div
+
+  .register()
+
+
+new window.SUITE.ModuleBuilder("fixed-size-element")
+  .extend "absolute-element"
+  .addProperty "width", [SUITE.PrimitiveType.Number], 0, ()->
+    @setPropertyWithoutSetter "width", @computeSize().width
+  .addProperty "height", [SUITE.PrimitiveType.Number], 0, ()->
+    @setPropertyWithoutSetter "height", @computeSize().height
+
+  # Subclasses should override this method
+  .addMethod "computeSize", ()->
+    return {width: 100, height: 100}
+
+  # Subclasses run this method to recalculate their size
+  .addMethod "updateSize", ()->
+    @$width = 0
+    @$height = 0
+    @dispatchEvent "onResize", @size
 
   .register()

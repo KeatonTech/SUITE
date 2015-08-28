@@ -257,7 +257,7 @@
     };
 
     Module.prototype.extend = function(existingModuleName) {
-      var e, existingModule, m, name, p, s, _ref, _ref1, _ref2, _ref3, _ref4;
+      var e, existingModule, m, name, p, s, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
       this["super"] = existingModule = SUITE.modules[existingModuleName];
       _ref = existingModule.properties;
       for (name in _ref) {
@@ -283,6 +283,11 @@
       for (name in _ref4) {
         s = _ref4[name];
         this.styles[name] = s;
+      }
+      _ref5 = existingModule.methods;
+      for (name in _ref5) {
+        m = _ref5[name];
+        this.methods[name] = m;
       }
       if (this.render == null) {
         this.render = existingModule.render;
@@ -648,6 +653,48 @@
       }
     };
   };
+
+}).call(this);
+(function() {
+  window.SUITE.TextMetrics = (function() {
+    function TextMetrics(cfg) {
+      if (SUITE._hiddenCanvas == null) {
+        SUITE._hiddenCanvas = this.createCanvas();
+      }
+      this.ctx = SUITE._hiddenCanvas.getContext("2d");
+      if (cfg instanceof SUITE.Component || cfg instanceof SUITE.ModuleAPI) {
+        this.font = cfg.$font instanceof Array ? "'" + (cfg.$font.join(', ')) + "'" : "'" + cfg.$font + "'";
+        this.fontSize = cfg.$fontSize;
+        this.letterSpacing = cfg.$letterSpacing;
+      } else {
+        this.font = "sans-serif";
+        this.fontSize = 18;
+        this.letterSpacing = 0;
+      }
+    }
+
+    TextMetrics.prototype.createCanvas = function() {
+      var c;
+      c = document.createElement("canvas");
+      c.style.display = "none";
+      document.body.appendChild(c);
+      return c;
+    };
+
+    TextMetrics.prototype.measure = function(string) {
+      var width;
+      this.ctx.font = this.fontSize + "px " + this.font;
+      width = this.ctx.measureText(string).width;
+      width += (string.length - 1) * this.letterSpacing;
+      return {
+        width: width,
+        height: this.fontSize
+      };
+    };
+
+    return TextMetrics;
+
+  })();
 
 }).call(this);
 (function() {
@@ -1508,9 +1555,12 @@
     boxShadow: function() {
       return this.$shadow;
     }
-  }).setRenderer(function() {
+  }).setRenderer(function(tag) {
     var div;
-    div = this.createElement("div");
+    if (tag == null) {
+      tag = "div";
+    }
+    div = this.createElement(tag);
     if (window.SUITE.config.component_attribute) {
       div.setAttribute("data-component", this._.type);
     }
@@ -1548,12 +1598,27 @@
     height: function() {
       return this.$height;
     }
-  }).setRenderer(function() {
+  }).setRenderer(function(tag) {
     var div;
-    div = this["super"]();
+    div = this["super"](tag);
     this.applyStyle(div, "positioned");
     this.applyStyle(div, "sized");
     return div;
+  }).register();
+
+  new window.SUITE.ModuleBuilder("fixed-size-element").extend("absolute-element").addProperty("width", [SUITE.PrimitiveType.Number], 0, function() {
+    return this.setPropertyWithoutSetter("width", this.computeSize().width);
+  }).addProperty("height", [SUITE.PrimitiveType.Number], 0, function() {
+    return this.setPropertyWithoutSetter("height", this.computeSize().height);
+  }).addMethod("computeSize", function() {
+    return {
+      width: 100,
+      height: 100
+    };
+  }).addMethod("updateSize", function() {
+    this.$width = 0;
+    this.$height = 0;
+    return this.dispatchEvent("onResize", this.size);
   }).register();
 
 }).call(this);
@@ -1616,6 +1681,48 @@
     if ((this.$maxHeight != null) && (this.$minHeight != null)) {
       return this.$height = parseInt(Math.max(Math.min(size.height, this.$maxHeight), this.$minHeight));
     }
+  }).register();
+
+}).call(this);
+(function() {
+  new window.SUITE.ModuleBuilder("text").extend("fixed-size-element").addProperty("string", [SUITE.PrimitiveType.String], "", function(val) {
+    if (this.rootElement == null) {
+      return;
+    }
+    this.rootElement.innerHTML = val;
+    return this.updateSize();
+  }).addProperty("color", [SUITE.PrimitiveType.Color]).addProperty("font", [SUITE.PrimitiveType.String, SUITE.PrimitiveType.List], ["sans-serif"], function() {
+    return this.updateSize();
+  }).addProperty("fontSize", [SUITE.PrimitiveType.Number], 12, function() {
+    return this.updateSize();
+  }).addProperty("letterSpacing", [SUITE.PrimitiveType.Number], 0, function() {
+    return this.updateSize();
+  }).addStyle("text", {
+    color: function() {
+      return this.$color;
+    },
+    fontSize: function() {
+      return this.$fontSize;
+    },
+    fontFamily: function() {
+      if (this.$font instanceof Array) {
+        return "'" + (this.$font.join(', ')) + "'";
+      } else {
+        return "'" + this.$font + "'";
+      }
+    },
+    letterSpacing: function() {
+      return this.$letterSpacing;
+    }
+  }).setRenderer(function() {
+    var p;
+    p = this["super"]("p");
+    p.innerHTML = this.$string;
+    this.applyStyle(p, "text");
+    this.updateSize();
+    return p;
+  }).addMethod("computeSize", function() {
+    return new SUITE.TextMetrics(this).measure(this.$string);
   }).register();
 
 }).call(this);

@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+  <title>SUITE Layout Demo</title>
+  <script type="text/javascript" src="../dist/SUITE.js"></script>
+  <script type="text/javascript">
+    window.onload = function(){
+      var stage = new SUITE.Stage("body");
+      window.textlayout = SUITE.ParseTemplate({
+        "<float-layout>": {
+          child: {
+            "<text@text>": {
+              $string: "Hello World!",
+              $color: "#da0",
+              $fontFamily: ["Open Sans", "Helvetica", "Arial", "sans-serif"],
+              $fontSize: 56
+            }
+          }
+        }
+      });
+
+      stage.addChild(window.textlayout);
+      stage.render();
+    }
+  </script>
+  <style>
+    html,body {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background-color: white;
+      margin: 0;
+      padding: 0;
+    }
+    body * {position: absolute;}
+  </style>
+</head>
+<body></body>
+</html>

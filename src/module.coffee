@@ -60,6 +60,8 @@ class window.SUITE.Module
       @handlers[name] = m
     for name, s of existingModule.styles
       @styles[name] = s
+    for name, m of existingModule.methods
+      @methods[name] = m
 
     if !@render? then @render = existingModule.render
     if !@onResize? then @onResize = existingModule.onResize
