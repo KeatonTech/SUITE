@@ -14,7 +14,6 @@ window.SUITE.AttrFunctionFactory = (default_element, transition)->
       attributes = attributes_or_element
 
     # Apply non-style changes, keep the style changes
-    style_changes = {}
     for name, value of attributes
       switch name.split(".")[0].toLowerCase()
 
@@ -47,23 +46,4 @@ window.SUITE.AttrFunctionFactory = (default_element, transition)->
             value = "#{value}px"
           if !transition? then element.style[name] = value
           else
-            style_changes[name] = value
-
-    # If there's no transition, we've already applied all the changes so we're done
-    if !transition? then return
-
-    # Set up CSS3 transitions
-    transition_strings = for name, value of style_changes
-      "#{_sh.camelToDash(name)} #{transition.duration}ms #{transition.easing}"
-    transition_style = transition_strings.join ","
-    prefixes = ["","-webkit-","-moz-","-ms-"]
-    full_style = ("#{p}transition:#{transition_style}" for p in prefixes).join(";")
-    element.setAttribute("style", element.getAttribute("style") + full_style)
-
-    # Make the style changes
-    wait 5, ()->
-      element.style[name] = value for name, value of style_changes
-
-      # Clean up the CSS3 transitions
-      wait 5, ()->
-        element.setAttribute("style", element.getAttribute("style").replace(full_style,""))
+            transition.addAttribute element, name, value

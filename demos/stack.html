@@ -37,10 +37,10 @@
 
       setInterval(function(){
         SUITE.AnimateChanges(new SUITE.Transition(300), function(){
-          stack.stack.$spacing = Math.random() * 20
-          //stack.top.$height = 150 + Math.random() * 100
-          //stack.middle.$height = 5 + Math.random() * 200
-          //stack.bottom.$height = 80 + Math.random() * 40
+          //stack.stack.$spacing = Math.random() * 20
+          stack.top.$height = 50 + Math.random() * 100
+          stack.middle.$height = 5 + Math.random() * 20
+          stack.bottom.$height = 20 + Math.random() * 80
         })
       },600)
     }

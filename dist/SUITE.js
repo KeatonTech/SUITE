@@ -335,7 +335,66 @@
       }
       this.duration = duration;
       this.easing = easing;
+      this.elements = [];
+      this.attributes = [];
     }
+
+    Transition.prototype.addAttribute = function(element, attr, value) {
+      var index;
+      index = this.elements.indexOf(element);
+      if (index === -1) {
+        index = this.elements.length;
+        this.elements.push(element);
+        this.attributes.push({});
+      }
+      return this.attributes[index][attr] = value;
+    };
+
+    Transition.prototype.run = function() {
+      var attrs, element, i, _ref, _results;
+      _ref = this.attributes;
+      _results = [];
+      for (i in _ref) {
+        attrs = _ref[i];
+        element = this.elements[i];
+        _results.push(this._animateAttrs(element, attrs));
+      }
+      return _results;
+    };
+
+    Transition.prototype._animateAttrs = function(element, attrs) {
+      var full_style, name, p, prefixes, transition_strings, transition_style, value;
+      transition_strings = (function() {
+        var _results;
+        _results = [];
+        for (name in attrs) {
+          value = attrs[name];
+          _results.push("" + (_sh.camelToDash(name)) + " " + this.duration + "ms " + this.easing);
+        }
+        return _results;
+      }).call(this);
+      transition_style = transition_strings.join(",");
+      prefixes = ["", "-webkit-", "-moz-", "-ms-"];
+      full_style = ((function() {
+        var _i, _len, _results;
+        _results = [];
+        for (_i = 0, _len = prefixes.length; _i < _len; _i++) {
+          p = prefixes[_i];
+          _results.push("" + p + "transition:" + transition_style);
+        }
+        return _results;
+      })()).join(";");
+      element.setAttribute("style", element.getAttribute("style") + full_style);
+      return wait(5, function() {
+        for (name in attrs) {
+          value = attrs[name];
+          element.style[name] = value;
+        }
+        return wait(5, function() {
+          return element.setAttribute("style", element.getAttribute("style").replace(full_style, ""));
+        });
+      });
+    };
 
     return Transition;
 
@@ -346,6 +405,7 @@
   window.SUITE.AnimateChanges = function(transition, func) {
     window.SUITE._currentTransition = transition;
     func();
+    window.SUITE._currentTransition.run();
     return window.SUITE._currentTransition = void 0;
   };
 
@@ -495,7 +555,7 @@
 
   window.SUITE.AttrFunctionFactory = function(default_element, transition) {
     return function(attributes_or_element, or_attributes) {
-      var attr_name, attributes, classname, element, full_style, name, p, prefixes, style_changes, transition_strings, transition_style, value;
+      var attr_name, attributes, classname, element, name, value;
       if (attributes_or_element instanceof HTMLElement) {
         element = attributes_or_element;
         attributes = or_attributes;
@@ -503,7 +563,6 @@
         element = default_element;
         attributes = attributes_or_element;
       }
-      style_changes = {};
       for (name in attributes) {
         value = attributes[name];
         switch (name.split(".")[0].toLowerCase()) {
@@ -541,43 +600,10 @@
             if (transition == null) {
               element.style[name] = value;
             } else {
-              style_changes[name] = value;
+              transition.addAttribute(element, name, value);
             }
         }
       }
-      if (transition == null) {
-        return;
-      }
-      transition_strings = (function() {
-        var _results;
-        _results = [];
-        for (name in style_changes) {
-          value = style_changes[name];
-          _results.push("" + (_sh.camelToDash(name)) + " " + transition.duration + "ms " + transition.easing);
-        }
-        return _results;
-      })();
-      transition_style = transition_strings.join(",");
-      prefixes = ["", "-webkit-", "-moz-", "-ms-"];
-      full_style = ((function() {
-        var _i, _len, _results;
-        _results = [];
-        for (_i = 0, _len = prefixes.length; _i < _len; _i++) {
-          p = prefixes[_i];
-          _results.push("" + p + "transition:" + transition_style);
-        }
-        return _results;
-      })()).join(";");
-      element.setAttribute("style", element.getAttribute("style") + full_style);
-      return wait(5, function() {
-        for (name in style_changes) {
-          value = style_changes[name];
-          element.style[name] = value;
-        }
-        return wait(5, function() {
-          return element.setAttribute("style", element.getAttribute("style").replace(full_style, ""));
-        });
-      });
     };
   };
 
@@ -1490,7 +1516,6 @@
   }).setRenderer(function() {
     var div, slot, _i, _len, _ref;
     div = this["super"]();
-    div.style.backgroundColor = this.$fill;
     _ref = this.slots.children;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       slot = _ref[_i];

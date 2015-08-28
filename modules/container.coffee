@@ -8,7 +8,6 @@ new window.SUITE.ModuleBuilder("container")
   # Rendered as a group, does not enforce any layout
   .setRenderer ()->
     div = @super()
-    div.style.backgroundColor = @$fill
     div.appendChild(@renderSlot slot) for slot in @slots.children
     return div
 
