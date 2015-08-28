@@ -116,9 +116,9 @@
 
 }).call(this);
 (function() {
-  new window.SUITE.ModuleBuilder("sidebar").extend("layout-in-container").addProperty("width", [SUITE.PrimitiveType.Number], 200).addProperty("position", [SUITE.PrimitiveType.Number]).setInitializer(function() {
-    return this.$position = -this.$width;
-  }).addSlot("content", false).addProperty("pinLeft", [SUITE.PrimitiveType.Boolean], false).addProperty("slideTime", [SUITE.PrimitiveType.Number], 250).addProperty("shown", [SUITE.PrimitiveType.Boolean], false, function(val, oldval) {
+  new window.SUITE.ModuleBuilder("sidebar-layout").extend("layout-in-container").addProperty("position", [SUITE.PrimitiveType.Number]).addProperty("childWidth", [SUITE.PrimitiveType.Number], 0, function(val) {
+    return this.$position = this.$shown ? 0 : -val;
+  }).addProperty("pinLeft", [SUITE.PrimitiveType.Boolean], true).addProperty("slideTime", [SUITE.PrimitiveType.Number], 250).addProperty("shown", [SUITE.PrimitiveType.Boolean], false, function(val, oldval) {
     if (val === oldval) {
       return;
     }
@@ -127,6 +127,38 @@
     } else {
       return this.hide();
     }
+  }).addMethod("show", function() {
+    if (!this.$shown) {
+      return this.$shown = true;
+    }
+    this.appendElement(this.setElement("content_div", this.renderSlot(this.slots.child)));
+    this.slots.child.resize({
+      width: this.$childWidth,
+      height: this.$containerHeight
+    });
+    this.slots.child.dispatchEvent("onResize");
+    this.$position = -this.slots.child.$width;
+    return SUITE.AnimateChanges(new SUITE.Transition(this.$slideTime), (function(_this) {
+      return function() {
+        _this.$position = 0;
+        return _this.dispatchEvent("onShow");
+      };
+    })(this));
+  }).addMethod("hide", function() {
+    if (this.$shown) {
+      return this.$shown = false;
+    }
+    SUITE.AnimateChanges(new SUITE.Transition(this.$slideTime), (function(_this) {
+      return function() {
+        _this.$position = -_this.$childWidth;
+        return _this.dispatchEvent("onHide");
+      };
+    })(this));
+    return wait(this.$slideTime + 10, (function(_this) {
+      return function() {
+        return _this.removeElement("content_div");
+      };
+    })(this));
   }).addStyle("sidebar", {
     left: function() {
       if (this.$pinLeft) {
@@ -142,42 +174,12 @@
       return this.$containerHeight;
     },
     width: function() {
-      return this.$width;
+      return this.$childWidth;
     },
-    backgroundColor: "white",
-    boxShadow: function() {
-      if (!this.$shown) {
-        return "none";
-      } else {
-        return "0px 0px 4px rgba(0,0,0,.5)";
-      }
-    }
-  }).addMethod("show", function() {
-    this.setPropertyWithoutSetter("shown", true);
-    this.appendElement(this.setElement("content_div", this.renderSlot(this.slots.content)));
-    this.slots.content.resize({
-      width: this.$width,
-      height: this.$containerHeight
-    });
-    return SUITE.AnimateChanges(new SUITE.Transition(this.$slideTime), (function(_this) {
-      return function() {
-        return _this.$position = 0;
-      };
-    })(this));
-  }).addMethod("hide", function() {
-    SUITE.AnimateChanges(new SUITE.Transition(this.$slideTime), (function(_this) {
-      return function() {
-        return _this.$position = -_this.$width;
-      };
-    })(this));
-    return wait(this.$slideTime + 10, (function(_this) {
-      return function() {
-        return _this.removeElement("content_div");
-      };
-    })(this));
+    backgroundColor: "white"
   }).setRenderer(function() {
     var div;
-    div = this["super"]();
+    div = this["super"](false);
     if (this.$shown) {
       wait(1, this.show());
     }
@@ -188,8 +190,8 @@
     if (!this.$shown) {
       return;
     }
-    return this.slots.content.resize({
-      width: this.$width,
+    return this.slots.child.resize({
+      width: this.$childWidth,
       height: size.height
     });
   }).register();

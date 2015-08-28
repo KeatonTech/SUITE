@@ -1315,10 +1315,12 @@
   window.SUITE.Template = (function() {
     function Template(topLevelComponent) {
       this._component = topLevelComponent;
+      this._namedComponents = [];
     }
 
     Template.prototype.addComponentVariable = function(name, component) {
       component._varname = name;
+      this._namedComponents.push(name);
       return this[name] = component;
     };
 
@@ -1336,6 +1338,17 @@
         }
       }
       return copy;
+    };
+
+    Template.prototype.extend = function(template) {
+      var nc, _i, _len, _ref, _results;
+      _ref = template._namedComponents;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        nc = _ref[_i];
+        _results.push(this[nc] = template[nc]);
+      }
+      return _results;
     };
 
     return Template;
@@ -1454,19 +1467,22 @@
 }).call(this);
 (function() {
   window.SUITE.ParseTemplate = function(json) {
-    var build_recursive, container, parse_selector, properties, selector, selector_regex, single_key, single_template;
+    var build_recursive, container, new_template, parse_selector, properties, selector, selector_regex, single_key, single_template, template;
     if (Object.keys(json).length === 0) {
       return;
     }
     if (Object.keys(json).length > 1) {
       container = new SUITE.Component("container");
+      template = new SUITE.Template(container);
       for (selector in json) {
         properties = json[selector];
         single_template = {};
         single_template[selector] = properties;
-        container.addChild(SUITE.ParseTemplate(single_template));
+        new_template = SUITE.ParseTemplate(single_template);
+        template.extend(new_template);
+        container.addChild(new_template._component);
       }
-      return container;
+      return template;
     }
     selector_regex = /([A-Za-z0-9\-\_]+)(\@([A-Za-z0-9\-\_]+))?(\#([A-Za-z0-9\-\_]+))?(\.([A-Za-z0-9\-\_]+))?/;
     parse_selector = function(selector) {
@@ -1649,15 +1665,27 @@
 
 }).call(this);
 (function() {
-  new window.SUITE.ModuleBuilder("layout-in-container").extend("visible-element").addProperty("containerWidth", [SUITE.PrimitiveType.Number]).addProperty("containerHeight", [SUITE.PrimitiveType.Number]).setOnResize(function(size) {
+  new window.SUITE.ModuleBuilder("layout-in-container").extend("visible-element").addSlot("child", false).addProperty("containerWidth", [SUITE.PrimitiveType.Number]).addProperty("containerHeight", [SUITE.PrimitiveType.Number]).setOnResize(function(size) {
     this.$containerWidth = size.width;
     return this.$containerHeight = size.height;
-  }).register();
-
-  new window.SUITE.ModuleBuilder("float-layout").extend("layout-in-container").addSlot("child", false).addProperty("floatX", [SUITE.PrimitiveType.Number], 0.5).addProperty("floatY", [SUITE.PrimitiveType.Number], 0.5).addProperty("childWidth", [SUITE.PrimitiveType.Number]).addProperty("childHeight", [SUITE.PrimitiveType.Number]).addSlotEventHandler("child", "onResize", function(size) {
+  }).addProperty("childWidth", [SUITE.PrimitiveType.Number]).addProperty("childHeight", [SUITE.PrimitiveType.Number]).addSlotEventHandler("child", "onResize", function(size) {
     this.$childWidth = this.slots.child.$width;
     return this.$childHeight = this.slots.child.$height;
-  }).addStyle("floating", {
+  }).setRenderer(function(renderChild) {
+    var div;
+    if (renderChild == null) {
+      renderChild = true;
+    }
+    div = this["super"]();
+    if (renderChild) {
+      div.appendChild(this.renderSlot(this.slots.child));
+      this.slots.child.resize(this.size);
+      this.slots.child.dispatchEvent("onResize");
+    }
+    return div;
+  }).register();
+
+  new window.SUITE.ModuleBuilder("float-layout").extend("layout-in-container").addProperty("floatX", [SUITE.PrimitiveType.Number], 0.5).addProperty("floatY", [SUITE.PrimitiveType.Number], 0.5).addStyle("floating", {
     left: function() {
       return (this.$containerWidth - this.$childWidth) * this.$floatX;
     },
@@ -1668,7 +1696,32 @@
     var div;
     div = this["super"]();
     this.applyStyle(div, "floating");
-    div.appendChild(this.renderSlot(this.slots.child));
+    return div;
+  }).register();
+
+  new window.SUITE.ModuleBuilder("pinned-layout").extend("layout-in-container").addProperty("top", [SUITE.PrimitiveType.Number]).addProperty("left", [SUITE.PrimitiveType.Number]).addProperty("bottom", [SUITE.PrimitiveType.Number]).addProperty("right", [SUITE.PrimitiveType.Number]).addStyle("absolute", {
+    top: function() {
+      return this.$top;
+    },
+    left: function() {
+      return this.$left;
+    },
+    bottom: function() {
+      return this.$bottom;
+    },
+    right: function() {
+      return this.$right;
+    },
+    width: function() {
+      return this.$childWidth;
+    },
+    height: function() {
+      return this.$childHeight;
+    }
+  }).setRenderer(function() {
+    var div;
+    div = this["super"]();
+    this.applyStyle(div, "absolute");
     return div;
   }).register();
 
@@ -1734,9 +1787,12 @@
       this.rootElement.removeEventListener("click", oldVal);
     }
     return this.rootElement.addEventListener("click", val);
+  }).addStyle("button", {
+    cursor: "pointer"
   }).setRenderer(function() {
     var div;
     div = this["super"]();
+    this.applyStyle(div, "button");
     div.addEventListener("click", this.$onClick);
     return div;
   }).register();

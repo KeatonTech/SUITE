@@ -1,19 +1,15 @@
 # Sidebars are hidden by default. When triggered they are rendered and moved in from the side
 # of the screen. Sidebars are always full height.
-new window.SUITE.ModuleBuilder("sidebar")
+new window.SUITE.ModuleBuilder("sidebar-layout")
   .extend "layout-in-container"
 
   # Sidebars can't be positioned manually, and always have 100% height
-  .addProperty "width", [SUITE.PrimitiveType.Number], 200
   .addProperty "position", [SUITE.PrimitiveType.Number]
-  .setInitializer ()-> @$position = -@$width
-
-  # Sidebars only take one child element, a container that holds the sidebar
-  # It's done this way to make render deferring easier
-  .addSlot "content", false
+  .addProperty "childWidth", [SUITE.PrimitiveType.Number], 0, (val)->
+    @$position = if @$shown then 0 else -val
 
   # Set to false to make the sidebar come from the right side of the screen
-  .addProperty "pinLeft", [SUITE.PrimitiveType.Boolean], false
+  .addProperty "pinLeft", [SUITE.PrimitiveType.Boolean], true
 
   # Time it takes for the sidebar to appear
   .addProperty "slideTime", [SUITE.PrimitiveType.Number], 250
@@ -23,42 +19,50 @@ new window.SUITE.ModuleBuilder("sidebar")
     if val then @show()
     else @hide()
 
-  .addStyle "sidebar",
-    left: ()-> if @$pinLeft then @$position
-    right: ()-> if !@$pinLeft then @$position
-    height: ()-> @$containerHeight
-    width: ()-> @$width
-    backgroundColor: "white"
-    boxShadow: ()->
-      if !@$shown then "none"
-      else "0px 0px 4px rgba(0,0,0,.5)"
-
   # Internal function to update the layout of the stack
   .addMethod "show", ()->
 
     # Make sure $shown gets set to true, without causing an infinite loop
-    @setPropertyWithoutSetter "shown", true
+    if !@$shown then return @$shown = true
 
     # Render the content
-    @appendElement @setElement "content_div", @renderSlot(@slots.content)
-    @slots.content.resize({width: @$width, height: @$containerHeight})
+    @appendElement @setElement "content_div", @renderSlot(@slots.child)
+    @slots.child.resize({width: @$childWidth, height: @$containerHeight})
+    @slots.child.dispatchEvent "onResize"
+    @$position = -@slots.child.$width
 
     # Animate in
     SUITE.AnimateChanges new SUITE.Transition(@$slideTime), ()=>
       @$position = 0
 
+      # Let everybody know the sidebar is coming in
+      @dispatchEvent "onShow"
+
   .addMethod "hide", ()->
+
+    # Make sure $shown gets set to false, without causing an infinite loop
+    if @$shown then return @$shown = false
 
     # Animate out
     SUITE.AnimateChanges new SUITE.Transition(@$slideTime), ()=>
-      @$position = -@$width
+      @$position = -@$childWidth
+
+      # Let everybody know the sidebar is going away
+      @dispatchEvent "onHide"
 
     wait @$slideTime + 10, ()=>
       @removeElement "content_div"
 
+  .addStyle "sidebar",
+    left: ()-> if @$pinLeft then @$position
+    right: ()-> if !@$pinLeft then @$position
+    height: ()-> @$containerHeight
+    width: ()-> @$childWidth
+    backgroundColor: "white"
+
   # Lay out the children
   .setRenderer ()->
-    div = @super()
+    div = @super(false)
     if @$shown then wait 1, @show()
     @applyStyle div, "sidebar"
     return div
@@ -66,6 +70,6 @@ new window.SUITE.ModuleBuilder("sidebar")
   .setOnResize (size)->
     @super(size)
     if !@$shown then return
-    @slots.content.resize({width: @$width, height: size.height})
+    @slots.child.resize({width: @$childWidth, height: size.height})
 
   .register()

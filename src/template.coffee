@@ -3,9 +3,11 @@
 class window.SUITE.Template
   constructor: (topLevelComponent)->
     @_component = topLevelComponent
+    @_namedComponents = []
 
   addComponentVariable: (name, component)->
     component._varname = name
+    @_namedComponents.push name
     @[name] = component
 
   copy: ()->
@@ -15,3 +17,7 @@ class window.SUITE.Template
       if component._varname?
         copy[component._varname] = component
     return copy
+
+  extend: (template)->
+    for nc in template._namedComponents
+      @[nc] = template[nc]

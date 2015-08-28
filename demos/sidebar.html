@@ -7,22 +7,39 @@
     window.onload = function(){
       var stage = new SUITE.Stage("body");
       window.sidebar = SUITE.ParseTemplate({
-        "<sidebar@sidebar>": {
-          content: {
-            "<container>": {
+        "<pinned-layout@open>": {
+          $top: 15,
+          $right: 15,
+          child: {
+            "<button>": {
+              $width: 30,
+              $height: 30,
+              $fill: "#444",
+              $onClick: function(){
+                sidebar.sidebar.$shown = !sidebar.sidebar.$shown
+              }
+            },
+          }
+        },
+        "<sidebar-layout@sidebar>": {
+          $pinLeft: false,
+          $slideTime: 150,
+          child: {
+            "<box>": {
+              $width: 250,
               children: {
-                "<button@close>": {
-                  $x: 25,
-                  $y: 50,
-                  $width: 150,
-                  $height: 100,
-                  $fill: "#f00",
-                  $onClick: function(){
-                    sidebar.sidebar.hide();
-                    setTimeout(function(){
-                      sidebar.sidebar.$pinLeft = !sidebar.sidebar.$pinLeft;
-                      sidebar.sidebar.show();
-                    },400);
+                "<pinned-layout@close>": {
+                  $top: 15,
+                  $right: 15,
+                  child: {
+                    "<button>": {
+                      $width: 30,
+                      $height: 30,
+                      $fill: "#f00",
+                      $onClick: function(){
+                        sidebar.sidebar.hide()
+                      }
+                    }
                   }
                 }
               }
@@ -34,9 +51,13 @@
       stage.addChild(window.sidebar);
       stage.render();
 
-      setTimeout(function(){
-        window.sidebar.sidebar.show()
-      },1000)
+      sidebar.sidebar.addHandler("onShow", function(){
+        sidebar.open.$right = sidebar.sidebar.$childWidth + 15
+      });
+
+      sidebar.sidebar.addHandler("onHide", function(){
+        sidebar.open.$right = 15
+      });
     }
   </script>
   <style>

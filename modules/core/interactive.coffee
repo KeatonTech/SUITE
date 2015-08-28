@@ -5,8 +5,12 @@ new window.SUITE.ModuleBuilder("button")
     if oldVal? then @rootElement.removeEventListener "click", oldVal
     @rootElement.addEventListener "click", val
 
+  .addStyle "button",
+    cursor: "pointer"
+
   .setRenderer ()->
     div = @super()
+    @applyStyle div, "button"
     div.addEventListener "click", @$onClick
     return div
 

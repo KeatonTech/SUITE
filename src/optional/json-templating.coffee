@@ -5,11 +5,14 @@ window.SUITE.ParseTemplate = (json)->
   # If there are multiple top-level objects they must be wrapped in a container
   if Object.keys(json).length > 1
     container = new SUITE.Component "container"
+    template = new SUITE.Template container
     for selector, properties of json
       single_template = {}
       single_template[selector] = properties
-      container.addChild SUITE.ParseTemplate single_template
-    return container
+      new_template = SUITE.ParseTemplate single_template
+      template.extend new_template
+      container.addChild new_template._component
+    return template
 
   # Selectors determine the fundamental properties of the component, and use the
   # following format: component-name[$jsVarName][#id][.class[.class]]
