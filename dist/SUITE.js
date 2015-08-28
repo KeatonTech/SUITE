@@ -828,9 +828,6 @@
                   var oldval;
                   oldval = _this._values[name];
                   _this._values[name] = val;
-                  if (_this._rootElement == null) {
-                    return;
-                  }
                   _this._api._prepareAttrSetter();
                   p.setter.call(_this._api, val, oldval);
                   return _this._runPropertyChangeListeners(name, val, oldval);
@@ -1001,7 +998,6 @@
 
     Component.prototype.bindToComponentProperty = function(component, property) {
       var boundHandler, handler_s, s, type, _ref, _results;
-      console.log(property);
       boundHandler = function(func) {
         return function() {
           var a, args;
@@ -1529,7 +1525,11 @@
 
 }).call(this);
 (function() {
-  new window.SUITE.ModuleBuilder("stack").extend("floating-box").removeProperty("maxWidth").removeProperty("maxHeight").addProperty("justify", [SUITE.PrimitiveType.Number], 0.5).addProperty("spacing", [SUITE.PrimitiveType.Number], 0).addMethod("_relayout", function() {
+  new window.SUITE.ModuleBuilder("stack").extend("floating-box").removeProperty("maxWidth").removeProperty("maxHeight").addProperty("justify", [SUITE.PrimitiveType.Number], 0.5, function() {
+    return this._relayout();
+  }).addProperty("spacing", [SUITE.PrimitiveType.Number], 0, function() {
+    return this._relayout();
+  }).addMethod("_relayout", function() {
     var child, stack_width, total_height, _i, _j, _len, _len1, _ref, _ref1;
     stack_width = 0;
     _ref = this.slots.children;
@@ -1542,7 +1542,7 @@
     _ref1 = this.slots.children;
     for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
       child = _ref1[_j];
-      child.$x = this.$width / 2 - child.$width / 2;
+      child.$x = (this.$width - child.$width) * this.$justify;
       child.$y = total_height;
       total_height += child.$height + this.$spacing;
     }
@@ -1550,11 +1550,7 @@
   }).setRenderer(function() {
     var div;
     div = this["super"]();
-    wait(1, (function(_this) {
-      return function() {
-        return _this._relayout();
-      };
-    })(this));
+    this._relayout();
     return div;
   }).addEventHandler("onResize", function(size) {
     return this._relayout();

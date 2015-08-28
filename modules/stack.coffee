@@ -7,8 +7,8 @@ new window.SUITE.ModuleBuilder("stack")
   .removeProperty "maxWidth"
   .removeProperty "maxHeight"
 
-  .addProperty "justify", [SUITE.PrimitiveType.Number], 0.5
-  .addProperty "spacing", [SUITE.PrimitiveType.Number], 0
+  .addProperty "justify", [SUITE.PrimitiveType.Number], 0.5, ()-> @_relayout()
+  .addProperty "spacing", [SUITE.PrimitiveType.Number], 0, ()-> @_relayout()
 
   # Internal function to update the layout of the stack
   .addMethod "_relayout", ()->
@@ -22,7 +22,7 @@ new window.SUITE.ModuleBuilder("stack")
     # Position each child in the stack
     total_height = 0
     for child in @slots.children
-      child.$x = @$width / 2 - child.$width / 2
+      child.$x = (@$width - child.$width) * @$justify
       child.$y = total_height
       total_height += child.$height + @$spacing
 
@@ -32,7 +32,7 @@ new window.SUITE.ModuleBuilder("stack")
   # Lay out the children
   .setRenderer ()->
     div = @super()
-    wait 1, ()=> @_relayout()
+    @_relayout()
     return div
 
   # Watch for this component or any of its children to resize

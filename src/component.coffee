@@ -73,7 +73,6 @@ class window.SUITE.Component
             if p.setter? then (val)=>
               oldval = @_values[name]
               @_values[name] = val
-              if !@_rootElement? then return
               @_api._prepareAttrSetter()
               p.setter.call @_api, val, oldval
               @_runPropertyChangeListeners name, val, oldval
@@ -185,7 +184,6 @@ class window.SUITE.Component
 
   # Add all handlers in a ComponentProperty
   bindToComponentProperty: (component, property)->
-    console.log property
 
     # Handlers are bound to the api of the
     boundHandler = (func)-> ()->

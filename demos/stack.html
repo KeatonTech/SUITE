@@ -6,7 +6,7 @@
     window.onload = function(){
       var stage = new SUITE.Stage("body");
       window.stack = SUITE.ParseTemplate({
-        "<stack>": {
+        "<stack@stack>": {
           $spacing: 10,
           children: {
             "<box@top>": {
@@ -31,13 +31,14 @@
       stage.addChild(window.stack);
       stage.render();
 
-      /*setInterval(function(){
+      setInterval(function(){
         SUITE.AnimateChanges(new SUITE.Transition(300), function(){
-          stack.top.$height = 150 + Math.random() * 100
+          stack.stack.$spacing = Math.random() * 20
+          //stack.top.$height = 150 + Math.random() * 100
           //stack.middle.$height = 5 + Math.random() * 200
           //stack.bottom.$height = 80 + Math.random() * 40
         })
-      },600)*/
+      },600)
     }
   </script>
   <style>
