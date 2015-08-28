@@ -1,10 +1,13 @@
 new window.SUITE.ModuleBuilder("button")
-  .extend "visible-element"
+  .extend "absolute-element"
   .addProperty "onClick", [SUITE.PrimitiveType.Function], undefined, (val, _, oldVal)->
-    if oldVal? then @_rootElement.removeEventListener "click", oldVal
-    @_rootElement.addEventListener "click", val
+    if !@rootElement? then return
+    if oldVal? then @rootElement.removeEventListener "click", oldVal
+    @rootElement.addEventListener "click", val
 
   .setRenderer ()->
     div = @super()
     div.addEventListener "click", @$onClick
     return div
+
+  .register()

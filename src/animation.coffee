@@ -16,6 +16,9 @@ class window.SUITE.Transition
       @attributes.push {}
     @attributes[index][attr] = value
 
+  addAttrs: (element, attrs)->
+    new SUITE.AttrFunctionFactory(element, this)(attrs)
+
   run: ()->
     for i, attrs of @attributes
       element = @elements[i]
@@ -38,6 +41,29 @@ class window.SUITE.Transition
       # Clean up the CSS3 transitions
       wait 5, ()->
         element.setAttribute("style", element.getAttribute("style").replace(full_style,""))
+
+
+# Animations are collections of transitions that execute in order
+class window.SUITE.Animation
+  constructor: ()->
+    @times = []
+    @transitions = []
+
+  addTransition: (time, transition)->
+    for existing_time in @times
+      if Math.abs(existing_time - time) <= 10
+        console.log "Transitions must be at least 11ms apart to prevent CSS conflicts"
+        return false
+      
+    @times.push time
+    @transitions.push transition
+    return @transitions.length - 1
+
+  run: ()->
+    for i, time of @times
+      wait time, ((transition)->
+        transition.run()
+      )(@transitions[i])
 
 
 window.SUITE._currentTransition = undefined

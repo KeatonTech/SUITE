@@ -21,6 +21,7 @@ class window.SUITE.ModuleAPI
       @[name] = @_[name]
 
     Object.defineProperty @, "size", get: ()-> return {width: @$width, height: @$height}
+    Object.defineProperty @, "rootElement", get: ()-> return @_._rootElement
 
     # Passthrough
     @resize = @_.resize.bind @_
@@ -83,8 +84,9 @@ class window.SUITE.ModuleAPI
       if typeof element is "string" then element = @getElement element
       root_or_element.appendChild element
     else
-      if typeof root_or_element is "string" then element = @getElement root_or_element
-      @_._rootElement.appendChild element
+      if typeof root_or_element is "string"
+        root_or_element = @getElement root_or_element
+      @_._rootElement.appendChild root_or_element
 
   removeElement: (name_or_element)->
     if typeof name_or_element is "string" then name_or_element = @getElement name_or_element

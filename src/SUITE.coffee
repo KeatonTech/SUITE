@@ -51,3 +51,4 @@ window.SUITE =
 #@prepros-append ../modules/interactive.coffee
 #@prepros-append ../modules/stack.coffee
 #@prepros-append ../modules/dialog.coffee
+#@prepros-append ../modules/sidebar.coffee

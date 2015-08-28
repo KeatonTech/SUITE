@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+  <title>SUITE Layout Demo</title>
+  <script type="text/javascript" src="../dist/SUITE.js"></script>
+  <script type="text/javascript">
+    window.onload = function(){
+      var stage = new SUITE.Stage("body");
+      window.sidebar = SUITE.ParseTemplate({
+        "<sidebar@sidebar>": {
+          content: {
+            "<container>": {
+              children: {
+                "<button@close>": {
+                  $x: 25,
+                  $y: 50,
+                  $width: 150,
+                  $height: 100,
+                  $fill: "#f00",
+                  $onClick: function(){
+                    sidebar.sidebar.hide();
+                    setTimeout(function(){
+                      sidebar.sidebar.$pinLeft = !sidebar.sidebar.$pinLeft;
+                      sidebar.sidebar.show();
+                    },400);
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      stage.addChild(window.sidebar);
+      stage.render();
+
+      setTimeout(function(){
+        window.sidebar.sidebar.show()
+      },1000)
+    }
+  </script>
+  <style>
+    html,body {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background-color: #E8E6C6;
+      margin: 0;
+      padding: 0;
+    }
+    body * {position: absolute;}
+  </style>
+</head>
+<body></body>
+</html>
