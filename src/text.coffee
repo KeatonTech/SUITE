@@ -5,10 +5,10 @@ class window.SUITE.TextMetrics
     @ctx = SUITE._hiddenCanvas.getContext "2d"
 
     if cfg instanceof SUITE.Component or cfg instanceof SUITE.ModuleAPI
-      @font = if cfg.$font instanceof Array
-          "'#{cfg.$font.join(', ')}'"
+      @font = if cfg.$fontFamily instanceof Array
+          "'" + cfg.$fontFamily.join("', '") + "'"
         else
-          "'#{cfg.$font}'"
+          "'" + cfg.$fontFamily + "'"
 
       @fontSize = cfg.$fontSize
       @letterSpacing = cfg.$letterSpacing

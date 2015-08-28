@@ -8,7 +8,8 @@ new window.SUITE.ModuleBuilder("text")
     @updateSize()
 
   .addProperty "color", [SUITE.PrimitiveType.Color]
-  .addProperty "font", [SUITE.PrimitiveType.String,SUITE.PrimitiveType.List], ["sans-serif"],
+  .addProperty "fontFamily", [SUITE.PrimitiveType.String,SUITE.PrimitiveType.List],
+    ["Helvetica","Arial","sans-serif"],
     ()-> @updateSize()
   .addProperty "fontSize", [SUITE.PrimitiveType.Number], 12, ()-> @updateSize()
   .addProperty "letterSpacing", [SUITE.PrimitiveType.Number], 0, ()-> @updateSize()
@@ -16,9 +17,9 @@ new window.SUITE.ModuleBuilder("text")
   .addStyle "text",
     color: ()-> @$color
     fontSize: ()-> @$fontSize
-    fontFamily: ()->
-      if @$font instanceof Array then "'#{@$font.join(', ')}'" else "'#{@$font}'"
+    fontFamily: ()-> "'#{@$fontFamily.join("', '")}'"
     letterSpacing: ()-> @$letterSpacing
+    lineHeight: ()-> @$height + "px"
 
   .setRenderer ()->
     p = @super("p")

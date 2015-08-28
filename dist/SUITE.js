@@ -663,7 +663,7 @@
       }
       this.ctx = SUITE._hiddenCanvas.getContext("2d");
       if (cfg instanceof SUITE.Component || cfg instanceof SUITE.ModuleAPI) {
-        this.font = cfg.$font instanceof Array ? "'" + (cfg.$font.join(', ')) + "'" : "'" + cfg.$font + "'";
+        this.font = cfg.$fontFamily instanceof Array ? "'" + cfg.$fontFamily.join("', '") + "'" : "'" + cfg.$fontFamily + "'";
         this.fontSize = cfg.$fontSize;
         this.letterSpacing = cfg.$letterSpacing;
       } else {
@@ -1691,7 +1691,7 @@
     }
     this.rootElement.innerHTML = val;
     return this.updateSize();
-  }).addProperty("color", [SUITE.PrimitiveType.Color]).addProperty("font", [SUITE.PrimitiveType.String, SUITE.PrimitiveType.List], ["sans-serif"], function() {
+  }).addProperty("color", [SUITE.PrimitiveType.Color]).addProperty("fontFamily", [SUITE.PrimitiveType.String, SUITE.PrimitiveType.List], ["Helvetica", "Arial", "sans-serif"], function() {
     return this.updateSize();
   }).addProperty("fontSize", [SUITE.PrimitiveType.Number], 12, function() {
     return this.updateSize();
@@ -1705,14 +1705,13 @@
       return this.$fontSize;
     },
     fontFamily: function() {
-      if (this.$font instanceof Array) {
-        return "'" + (this.$font.join(', ')) + "'";
-      } else {
-        return "'" + this.$font + "'";
-      }
+      return "'" + (this.$fontFamily.join("', '")) + "'";
     },
     letterSpacing: function() {
       return this.$letterSpacing;
+    },
+    lineHeight: function() {
+      return this.$height + "px";
     }
   }).setRenderer(function() {
     var p;
