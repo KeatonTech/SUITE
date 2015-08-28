@@ -41,16 +41,15 @@ window.SUITE =
 #@prepros-append ./template.coffee
 
 # OPTIONAL IMPORTS ==========================================================================
+# These are necessary to use SUITE normally, but could be compiled out in the future
+
 #@prepros-append ./optional/module-builder.coffee
 #@prepros-append ./optional/json-templating.coffee
 
-# BUILT-IN COMPONENT IMPORTS ================================================================
-#@prepros-append ../modules/core.coffee
-#@prepros-append ../modules/container.coffee
-#@prepros-append ../modules/layouts.coffee
-#@prepros-append ../modules/box.coffee
-#@prepros-append ../modules/text.coffee
-#@prepros-append ../modules/interactive.coffee
-#@prepros-append ../modules/stack.coffee
-#@prepros-append ../modules/dialog.coffee
-#@prepros-append ../modules/sidebar.coffee
+# CORE MODULES ==============================================================================
+#@prepros-append ../modules/core/core.coffee
+#@prepros-append ../modules/core/container.coffee
+#@prepros-append ../modules/core/layouts.coffee
+#@prepros-append ../modules/core/box.coffee
+#@prepros-append ../modules/core/text.coffee
+#@prepros-append ../modules/core/interactive.coffee
