@@ -63,69 +63,83 @@ dialog_setup.dialog.$width = 640
 dialog_setup.dc.showDialog()
 ```
 
+SUITE has a built in CSS3 animation system that works with almost everything automatically.
+So, animating the height of the dialog is as easy as:
+
+```coffeescript
+SUITE.AnimateChanges(new SUITE.Transition(300, "linear"), function(){
+  dialog_setup.dialog.$height = 300
+});
+```
+
 ### Building a new module
 The easiest way to create your own modules is to use the ModuleBuilder, based off of Java's
 famous builder pattern. It allows you to configure your module, override functions, add
 properties, and then register it with SUITE – all in one technically amounts to one line.
 
-Here is annotated code for a simple two-column module
+Here is annotated code for the floating layout module, which positions a child element
+within its parent.
 
 ```coffeescript
-new window.SUITE.ModuleBuilder("two-column")
+# Floating layouts are positioned relative to their parent using a fractional location, where
+# (0,0) puts them in the top left and (0.5,0.5) centers them.
+new window.SUITE.ModuleBuilder("float-layout")
 
-  # visible-element provides basic properties like position and size
-  .extend("visible-element")
+  # The visible-element component provides things like basic styling
+  .extend "visible-element"
 
-  # The addSlot function takes two arguments: the name and optionally whether it's repeated.
-  # Repeated slots can hold multiple components. For this example we'll assume each column
-  # can only directly hold one thing. This isn't that limiting since that one thing can
-  # itself be a container holding as many elements as you'd like.
-  .addSlot("left-column", false)
-  .addSlot("right-column", false)
+  # Slots can hold child elements. This module only has one slot, but you can imagine
+  # something like a multi-column layout needing more.
+  # The addSlot function takes 2 arguments: The name and whether the slot is repeated.
+  # Repeated slots can accept multiple components.
+  .addSlot "child", false
 
-  # Overrides the render() function, which turns the component into HTML
-  .setRenderer ()->
-    div = @super() # visible-element's render function returns a properly sized div
+  # Define two properties that let the user define where the box floats
+  .addProperty "floatX", [SUITE.PrimitiveType.Number], 0.5
+  .addProperty "floatY", [SUITE.PrimitiveType.Number], 0.5
 
-    # The renderSlot function takes either (slot) or (name, slot) and returns an HTMLElement
-    # Naming a slot makes it easier to access the generated element later
-    left = @renderSlot "left", @slots["left-column"]
-    right = @renderSlot "right", @slots["right-column"]
+  # These properties are mostly for internal use, but there may be some situations where
+  # the user wants to edit them
+  .addProperty "childWidth", [SUITE.PrimitiveType.Number]
+  .addProperty "childHeight", [SUITE.PrimitiveType.Number]
+  .addProperty "containerWidth", [SUITE.PrimitiveType.Number]
+  .addProperty "containerHeight", [SUITE.PrimitiveType.Number]
 
-    # The forceAttrs function sets attributes without causing an animation
-    # It takes either (attr_object) or (html_element, attr_object)
-    # If no element is passed it modifies the top level element, in this case div
-    # @$width is the width variable of this component
-    @forceAttrs left, width: @$width * @$split
-    @forceAttrs right, width: @$width * (1 - @$split)
-
-    # Add both of these rendered elements to the top-level div
-    @appendElement left
-    @appendElement right
-
-  # This property controls the relative widths of the two columns
-  # The function expects (name, type, default?, setter?)
-  # The type should be an instance of SUITE.Type, it will construct one if you pass an array
-  .addProperty "split", [SUITE.PrimitiveType.Number], 0.5, (val)->
-
-    # Validation
-    if val > 1 then return @$split = 1 # Setter will run again
-    if val < 0 then return @$split = 0
-
-    # The setter runs whenever this variable is modified (even with component.$split = x)
-    @setAttrs @getElement("left"), width: @$width * val
-    @setAttrs @getElement("right"), width: @$width * (1 - val)
-
-  # Overrides the resize function, to make sure the columns stay the same size
+  # This function is called by this component's parent whenever its size changes.
+  # The 'size' argument is the space available to this component. The component can resize
+  # itself by setting @$width/@$height here, but this one doesn't need that.
   .setOnResize (size)->
-    @forceAttrs @getElement("left"), width: @$width * @$split
-    @forceAttrs @getElement("right"), width: @$width * (1 - @$split)
+    @$containerWidth = size.width
+    @$containerHeight = size.height
 
-    # Also make sure elements inside the columns resize
-    @slots["left-column"].resize(size)
-    @slots["right-column"].resize(size)
+  # This function is called whenever the size of the child element changes
+  .addSlotEventHandler "child", "onResize", (size)->
+    @$childWidth = @slots.child.$width
+    @$childHeight = @slots.child.$height
 
-  # Add this module to SUITE, so it can be added with "<two-column>" in templates
+  # Styles can have both static and function properties. Static properties are turned into
+  # normal CSS. Function properties are analyzed to see which of the component's properties
+  # they rely on, and are re-evaluated whenever any of those properties change!
+  .addStyle "floating",
+    left: ()-> (@$containerWidth - @$childWidth) * @$floatX
+    top: ()-> (@$containerHeight - @$childHeight) * @$floatY
+
+  # The renderer creates an HTML representation of the component
+  .setRenderer ()->
+
+    # Call the render function of the visible-element module, which returns a div
+    div = super()
+
+    # Apply our floating style to this div. The left and top properties will now be
+    # automatically updated when this component's properties change
+    @applyStyle div, "floating"
+
+    # Render the child slot
+    div.appendChild @renderSlot @slots.child
+
+    return div
+
+  # Add this module to SUITE under the name "float-layout"
   .register()
 ```
 
@@ -144,6 +158,8 @@ Here's a bunch of functions you can use in the Module API:
 * **removeSlotComponent(name, index):** Removes a specific component from a repeated slot
 * **emptySlot(name):** Removes all components from a named slot
 * **renderSlot(name, slot):** Runs slot.render() and sets it to a named element
+* **dispatchEvent(event_name):** Runs all registered handlers for event_name on the component
+* **createComponent(module_name):** Creates and returns a new SUITE component (not its API)
 * **getElement(name):** Get a named element
 * **appendElement(element):** Adds an HTML element to the root element of the component
 * **appendElement(name):** Adds a named element to the root element of the component

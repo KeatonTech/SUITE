@@ -28,7 +28,7 @@ new window.SUITE.ModuleBuilder("float-layout")
     top: ()-> (@$containerHeight - @$childHeight) * @$floatY
 
   .setRenderer ()->
-    div = document.createElement "div"
+    div = super()
     @applyStyle div, "floating"
     div.appendChild @renderSlot @slots.child
     return div
