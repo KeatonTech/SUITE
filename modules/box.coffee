@@ -16,35 +16,3 @@ new window.SUITE.ModuleBuilder("box")
       @$height = parseInt Math.max(Math.min(size.height, @$maxHeight), @$minHeight)
 
   .register()
-
-
-# Floating boxes are positioned relative to their parent using a fractional location, where
-# (0,0) puts them in the top left and (0.5,0.5) centers them
-new window.SUITE.ModuleBuilder("floating-box")
-  .extend("box")
-  .removeProperty "x"
-  .removeProperty "y"
-  .removeStyle "positioned"
-
-  # Centered in the parent by default
-  .addProperty "floatX", [SUITE.PrimitiveType.Number], 0.5
-  .addProperty "floatY", [SUITE.PrimitiveType.Number], 0.5
-
-  # Keep track of how much space this thing has to play with
-  .addProperty "containerWidth", [SUITE.PrimitiveType.Number]
-  .addProperty "containerHeight", [SUITE.PrimitiveType.Number]
-  .setOnResize (size)->
-    @super(size)
-    @$containerWidth = size.width
-    @$containerHeight = size.height
-
-  # Floating style
-  .addStyle "floating",
-    left: ()-> @$containerWidth / 2 - @$width / 2
-    top: ()-> @$containerHeight / 2 - @$height / 2
-  .setRenderer ()->
-    div = @super()
-    @applyStyle div, "floating"
-    return div
-
-  .register()

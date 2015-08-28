@@ -95,6 +95,7 @@ class window.SUITE.ModuleAPI
     if !tagName? then return document.createElement elementName_or_tagName
     return @_._elements[elementName_or_tagName] = document.createElement tagName
 
+  setElement: (name, element) -> @_._elements[name] = element
   getElement: (name) -> return @_._elements[name]
 
   applyStyle: (element, style_name) ->
@@ -108,3 +109,7 @@ class window.SUITE.ModuleAPI
   renderSlot: (slot_or_name, slot)->
     if slot? then @_._elements[slot_or_name] = slot.render()
     else slot_or_name.render()
+
+  # COMPONENTS ==============================================================================
+
+  createComponent: (type_name)-> return new SUITE.Component type_name

@@ -30,8 +30,12 @@ new window.SUITE.ModuleBuilder("dialog-container")
       @applyStyle oc, "sized"
       @applyStyle oc, "overlay"
 
+      fm = @_floating = @createComponent "float-layout"
+      fm.fillSlot "child", dialog
+      fm.resize @size
       dialog.resize @size
-      dc = @renderSlot "dialog", dialog
+      dialog.dispatchEvent "onResize"
+      dc = @setElement "dialog", fm.render()
       @applyStyle dc, "dialog"
 
       # Fade in if animated
@@ -44,6 +48,7 @@ new window.SUITE.ModuleBuilder("dialog-container")
     else
       @removeElement "overlay"
       @removeElement "dialog"
+      @_floating = undefined
 
   # Add methods to show or hide the dialog
   .addMethod "hideDialog", ()-> @$displayed = false
@@ -65,6 +70,6 @@ new window.SUITE.ModuleBuilder("dialog-container")
     @$height = size.height
     slot.resize(size) for slot in @slots.children
 
-    if @$displayed then @slots.dialog.resize size
+    if @$displayed then @_floating.resize size
 
   .register()

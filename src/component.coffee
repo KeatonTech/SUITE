@@ -104,7 +104,11 @@ class window.SUITE.Component
   # Fills a slot with another component
   fillSlot: (slotName, component)->
     if !(slot_class = @_module.slots[slotName])? then return -1
+
+    # Allow for some flexibility
     if component instanceof SUITE.Template then component = component._component
+    if component instanceof SUITE.ModuleAPI then component = component._
+    
     if !slot_class.allowComponent(component) then return -1
     component.parent = this
     component.bindToComponentProperty this, slot_class

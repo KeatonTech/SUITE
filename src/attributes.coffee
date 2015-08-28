@@ -20,15 +20,18 @@ window.SUITE.AttrFunctionFactory = (default_element, transition)->
 
         # Cover the basic HTML attributes
         when "id" or "src" or "href" or "rel" or "target" or "alt" or "title"
+          if !element? then return
           element.setAttribute name, value
 
         # Custom HTML attributes, eg attr.data-name
         when "attr"
+          if !element? then return
           attr_name = name.split(".")[1]
           element.setAttribute attr_name, value
 
         # Users can add or remove classes
         when "class"
+          if !element? then return
           if value[0] is "+"
             classname = element.getAttribute "class"
             element.setAttribute "class", classname + " " + value.substr(1)

@@ -7,25 +7,6 @@ new window.SUITE.ModuleBuilder("visible-element")
   .addProperty "class", [SUITE.PrimitiveType.String], "", (val)->
     @setAttrs "class": val
 
-
-  # LAYOUT PROPERTIES =======================================================================
-
-  .addProperty "x", [SUITE.PrimitiveType.Number], 0
-  .addProperty "y", [SUITE.PrimitiveType.Number], 0
-  .addProperty "width", [SUITE.PrimitiveType.Number], 0, (val, oldval) ->
-    if val != oldval then @dispatchEvent "onResize", @size
-  .addProperty "height", [SUITE.PrimitiveType.Number], 0, (val, oldval) ->
-    if val != oldval then @dispatchEvent "onResize", @size
-
-  .addStyle "positioned",
-    left: ()-> @$x
-    top: ()-> @$y
-
-  .addStyle "sized",
-    width: ()-> @$width
-    height: ()-> @$height
-
-
   # STYLE PROPETIES =========================================================================
 
   .addProperty "fill", [SUITE.PrimitiveType.Color]
@@ -64,13 +45,28 @@ new window.SUITE.ModuleBuilder("visible-element")
   .register()
 
 
-new window.SUITE.ModuleBuilder("button")
+new window.SUITE.ModuleBuilder("absolute-element")
   .extend "visible-element"
-  .addProperty "onClick", [SUITE.PrimitiveType.Function], undefined, (val, _, oldVal)->
-    if oldVal? then @_rootElement.removeEventListener "click", oldVal
-    @_rootElement.addEventListener "click", val
+
+  .addProperty "x", [SUITE.PrimitiveType.Number], 0
+  .addProperty "y", [SUITE.PrimitiveType.Number], 0
+  .addProperty "width", [SUITE.PrimitiveType.Number], 0, (val, oldval) ->
+    if val != oldval then @dispatchEvent "onResize", @size
+  .addProperty "height", [SUITE.PrimitiveType.Number], 0, (val, oldval) ->
+    if val != oldval then @dispatchEvent "onResize", @size
+
+  .addStyle "positioned",
+    left: ()-> @$x
+    top: ()-> @$y
+
+  .addStyle "sized",
+    width: ()-> @$width
+    height: ()-> @$height
 
   .setRenderer ()->
     div = @super()
-    div.addEventListener "click", @$onClick
+    @applyStyle div, "positioned"
+    @applyStyle div, "sized"
     return div
+
+  .register()

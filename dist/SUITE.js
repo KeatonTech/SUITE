@@ -508,13 +508,22 @@
         value = attributes[name];
         switch (name.split(".")[0].toLowerCase()) {
           case "id" || "src" || "href" || "rel" || "target" || "alt" || "title":
+            if (element == null) {
+              return;
+            }
             element.setAttribute(name, value);
             break;
           case "attr":
+            if (element == null) {
+              return;
+            }
             attr_name = name.split(".")[1];
             element.setAttribute(attr_name, value);
             break;
           case "class":
+            if (element == null) {
+              return;
+            }
             if (value[0] === "+") {
               classname = element.getAttribute("class");
               element.setAttribute("class", classname + " " + value.substr(1));
@@ -697,6 +706,10 @@
       return this._._elements[elementName_or_tagName] = document.createElement(tagName);
     };
 
+    ModuleAPI.prototype.setElement = function(name, element) {
+      return this._._elements[name] = element;
+    };
+
     ModuleAPI.prototype.getElement = function(name) {
       return this._._elements[name];
     };
@@ -717,6 +730,10 @@
       } else {
         return slot_or_name.render();
       }
+    };
+
+    ModuleAPI.prototype.createComponent = function(type_name) {
+      return new SUITE.Component(type_name);
     };
 
     return ModuleAPI;
@@ -879,6 +896,9 @@
       }
       if (component instanceof SUITE.Template) {
         component = component._component;
+      }
+      if (component instanceof SUITE.ModuleAPI) {
+        component = component._;
       }
       if (!slot_class.allowComponent(component)) {
         return -1;
@@ -1399,28 +1419,6 @@
     return this.setAttrs({
       "class": val
     });
-  }).addProperty("x", [SUITE.PrimitiveType.Number], 0).addProperty("y", [SUITE.PrimitiveType.Number], 0).addProperty("width", [SUITE.PrimitiveType.Number], 0, function(val, oldval) {
-    if (val !== oldval) {
-      return this.dispatchEvent("onResize", this.size);
-    }
-  }).addProperty("height", [SUITE.PrimitiveType.Number], 0, function(val, oldval) {
-    if (val !== oldval) {
-      return this.dispatchEvent("onResize", this.size);
-    }
-  }).addStyle("positioned", {
-    left: function() {
-      return this.$x;
-    },
-    top: function() {
-      return this.$y;
-    }
-  }).addStyle("sized", {
-    width: function() {
-      return this.$width;
-    },
-    height: function() {
-      return this.$height;
-    }
   }).addProperty("fill", [SUITE.PrimitiveType.Color]).addProperty("stroke", [SUITE.PrimitiveType.Color]).addProperty("strokeWidth", [SUITE.PrimitiveType.Number]).addProperty("shadow", [SUITE.PrimitiveType.String]).addProperty("cornerRadius", [SUITE.PrimitiveType.Number]).addStyle("styled", {
     backgroundColor: function() {
       return this.$fill;
@@ -1455,21 +1453,39 @@
     return div;
   }).register();
 
-  new window.SUITE.ModuleBuilder("button").extend("visible-element").addProperty("onClick", [SUITE.PrimitiveType.Function], void 0, function(val, _, oldVal) {
-    if (oldVal != null) {
-      this._rootElement.removeEventListener("click", oldVal);
+  new window.SUITE.ModuleBuilder("absolute-element").extend("visible-element").addProperty("x", [SUITE.PrimitiveType.Number], 0).addProperty("y", [SUITE.PrimitiveType.Number], 0).addProperty("width", [SUITE.PrimitiveType.Number], 0, function(val, oldval) {
+    if (val !== oldval) {
+      return this.dispatchEvent("onResize", this.size);
     }
-    return this._rootElement.addEventListener("click", val);
+  }).addProperty("height", [SUITE.PrimitiveType.Number], 0, function(val, oldval) {
+    if (val !== oldval) {
+      return this.dispatchEvent("onResize", this.size);
+    }
+  }).addStyle("positioned", {
+    left: function() {
+      return this.$x;
+    },
+    top: function() {
+      return this.$y;
+    }
+  }).addStyle("sized", {
+    width: function() {
+      return this.$width;
+    },
+    height: function() {
+      return this.$height;
+    }
   }).setRenderer(function() {
     var div;
     div = this["super"]();
-    div.addEventListener("click", this.$onClick);
+    this.applyStyle(div, "positioned");
+    this.applyStyle(div, "sized");
     return div;
-  });
+  }).register();
 
 }).call(this);
 (function() {
-  new window.SUITE.ModuleBuilder("container").extend("visible-element").addSlot("children", true).addMethod("addChild", function(child) {
+  new window.SUITE.ModuleBuilder("container").extend("absolute-element").addSlot("children", true).addMethod("addChild", function(child) {
     return this.fillSlot("children", child);
   }).setRenderer(function() {
     var div, slot, _i, _len, _ref;
@@ -1496,6 +1512,29 @@
 
 }).call(this);
 (function() {
+  new window.SUITE.ModuleBuilder("float-layout").extend("visible-element").addSlot("child", false).addProperty("floatX", [SUITE.PrimitiveType.Number], 0.5).addProperty("floatY", [SUITE.PrimitiveType.Number], 0.5).addProperty("childWidth", [SUITE.PrimitiveType.Number]).addProperty("childHeight", [SUITE.PrimitiveType.Number]).addProperty("containerWidth", [SUITE.PrimitiveType.Number]).addProperty("containerHeight", [SUITE.PrimitiveType.Number]).setOnResize(function(size) {
+    this.$containerWidth = size.width;
+    return this.$containerHeight = size.height;
+  }).addSlotEventHandler("child", "onResize", function(size) {
+    this.$childWidth = this.slots.child.$width;
+    return this.$childHeight = this.slots.child.$height;
+  }).addStyle("floating", {
+    left: function() {
+      return (this.$containerWidth - this.$childWidth) * this.$floatX;
+    },
+    top: function() {
+      return (this.$containerHeight - this.$childHeight) * this.$floatY;
+    }
+  }).setRenderer(function() {
+    var div;
+    div = document.createElement("div");
+    this.applyStyle(div, "floating");
+    div.appendChild(this.renderSlot(this.slots.child));
+    return div;
+  }).register();
+
+}).call(this);
+(function() {
   new window.SUITE.ModuleBuilder("box").extend("container").addProperty("minWidth", [SUITE.PrimitiveType.Number]).addProperty("minHeight", [SUITE.PrimitiveType.Number]).addProperty("maxWidth", [SUITE.PrimitiveType.Number]).addProperty("maxHeight", [SUITE.PrimitiveType.Number]).setOnResize(function(size) {
     if ((this.$maxWidth != null) && (this.$minWidth != null)) {
       this.$width = parseInt(Math.max(Math.min(size.width, this.$maxWidth), this.$minWidth));
@@ -1505,27 +1544,23 @@
     }
   }).register();
 
-  new window.SUITE.ModuleBuilder("floating-box").extend("box").removeProperty("x").removeProperty("y").removeStyle("positioned").addProperty("floatX", [SUITE.PrimitiveType.Number], 0.5).addProperty("floatY", [SUITE.PrimitiveType.Number], 0.5).addProperty("containerWidth", [SUITE.PrimitiveType.Number]).addProperty("containerHeight", [SUITE.PrimitiveType.Number]).setOnResize(function(size) {
-    this["super"](size);
-    this.$containerWidth = size.width;
-    return this.$containerHeight = size.height;
-  }).addStyle("floating", {
-    left: function() {
-      return this.$containerWidth / 2 - this.$width / 2;
-    },
-    top: function() {
-      return this.$containerHeight / 2 - this.$height / 2;
+}).call(this);
+(function() {
+  new window.SUITE.ModuleBuilder("button").extend("visible-element").addProperty("onClick", [SUITE.PrimitiveType.Function], void 0, function(val, _, oldVal) {
+    if (oldVal != null) {
+      this._rootElement.removeEventListener("click", oldVal);
     }
+    return this._rootElement.addEventListener("click", val);
   }).setRenderer(function() {
     var div;
     div = this["super"]();
-    this.applyStyle(div, "floating");
+    div.addEventListener("click", this.$onClick);
     return div;
-  }).register();
+  });
 
 }).call(this);
 (function() {
-  new window.SUITE.ModuleBuilder("stack").extend("floating-box").removeProperty("maxWidth").removeProperty("maxHeight").addProperty("justify", [SUITE.PrimitiveType.Number], 0.5, function() {
+  new window.SUITE.ModuleBuilder("stack").extend("box").removeProperty("maxWidth").removeProperty("maxHeight").addProperty("justify", [SUITE.PrimitiveType.Number], 0.5, function() {
     return this._relayout();
   }).addProperty("spacing", [SUITE.PrimitiveType.Number], 0, function() {
     return this._relayout();
@@ -1574,7 +1609,7 @@
     zIndex: 900,
     opacity: 0
   }).addProperty("displayed", [SUITE.PrimitiveType.Boolean], false, function(val, oldval) {
-    var dc, dialog, oc;
+    var dc, dialog, fm, oc;
     if (oldval === val) {
       return;
     }
@@ -1588,8 +1623,12 @@
       this.applyStyle(oc, "positioned");
       this.applyStyle(oc, "sized");
       this.applyStyle(oc, "overlay");
+      fm = this._floating = this.createComponent("float-layout");
+      fm.fillSlot("child", dialog);
+      fm.resize(this.size);
       dialog.resize(this.size);
-      dc = this.renderSlot("dialog", dialog);
+      dialog.dispatchEvent("onResize");
+      dc = this.setElement("dialog", fm.render());
       this.applyStyle(dc, "dialog");
       this.setAttrs(dc, {
         opacity: 1
@@ -1598,7 +1637,8 @@
       return this.appendElement("dialog");
     } else {
       this.removeElement("overlay");
-      return this.removeElement("dialog");
+      this.removeElement("dialog");
+      return this._floating = void 0;
     }
   }).addMethod("hideDialog", function() {
     return this.$displayed = false;
@@ -1627,7 +1667,7 @@
       slot.resize(size);
     }
     if (this.$displayed) {
-      return this.slots.dialog.resize(size);
+      return this._floating.resize(size);
     }
   }).register();
 
