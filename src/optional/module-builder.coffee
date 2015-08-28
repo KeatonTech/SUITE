@@ -18,9 +18,18 @@ class window.SUITE.ModuleBuilder
     @module.properties[name].setter = setter
     return this
 
+  addEventHandler: (event, func) ->
+    @module.addHandler event, func
+    return this
+
   addSlot: (name, isRepeated = false, allowType)->
     @module.addSlot name, new window.SUITE.Slot(isRepeated)
     if allowType? then @module.slots[name].allowType = allowType
+    return this
+
+  addSlotEventHandler: (name, event, func) ->
+    if !@module.slots[name]? then return
+    @module.slots[name].addHandler event, func
     return this
 
   addSlotFromClass: (name, slot)->

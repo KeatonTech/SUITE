@@ -9,13 +9,6 @@ new window.SUITE.ModuleBuilder("box")
   .addProperty "maxWidth", [SUITE.PrimitiveType.Number]
   .addProperty "maxHeight", [SUITE.PrimitiveType.Number]
 
-  # Initialize the min and max to the set width if they are not set by the user
-  .setInitializer ()->
-    if !@$maxWidth? then @$maxWidth = @$width
-    if !@$minWidth? then @$minWidth = @$width
-    if !@$maxHeight? then @$maxHeight = @$height
-    if !@$minHeight? then @$minHeight = @$height
-
   .setOnResize (size)->
     if @$maxWidth? and @$minWidth?
       @$width = parseInt Math.max(Math.min(size.width, @$maxWidth), @$minWidth)

@@ -23,16 +23,24 @@ class window.SUITE.Component
     for name, slot of @_module.slots when slot.isRepeated
       @slots[name] = []
 
-    # Create an instance of the Module API, which allows the owner module to interact with
-    # this component in an easy but safe way.
-    @_api = new SUITE.ModuleAPI this
-
     # Add custom methods from the module
     for name, func of @_module.methods
-      @[name] = func.bind @_api
+      @[name] = ((func)=> ()=>
+        @_api._prepareAttrSetter()
+        func.apply @_api, arguments
+      )(func)
+
+    # Add handlers from the module
+    @_handlers = {}
+    for event, func of @_module.handlers
+      @addHandler event, func
 
     # Prepare for property change listeners
     @_changeListeners = {}
+
+    # Create an instance of the Module API, which allows the owner module to interact with
+    # this component in an easy but safe way.
+    @_api = new SUITE.ModuleAPI this
 
   copy: ()->
     copy = new SUITE.Component @type
@@ -48,6 +56,7 @@ class window.SUITE.Component
         copy.slots[k] = slot_contents.copy()
 
     return copy
+
 
   # PROPERTIES ==============================================================================
 
@@ -71,6 +80,7 @@ class window.SUITE.Component
             else (val)=>
               oldval = @_values[name]
               @_values[name] = val
+              @_api._prepareAttrSetter()
               @_runPropertyChangeListeners name, val, oldval
           )(name, p)
 
@@ -98,6 +108,7 @@ class window.SUITE.Component
     if component instanceof SUITE.Template then component = component._component
     if !slot_class.allowComponent(component) then return -1
     component.parent = this
+    component.bindToComponentProperty this, slot_class
 
     index = 0
     if slot_class.isRepeated
@@ -106,6 +117,8 @@ class window.SUITE.Component
       @slots[slotName].push component
       @_api.slots[slotName].push component._api
     else
+      if @slots[slotName]?
+        @slots[slotName].unbindFromComponentProperty slot_class
       @slots[slotName] = component
       @_api.slots[slotName] = component._api
 
@@ -114,20 +127,24 @@ class window.SUITE.Component
 
   # Remove a specific component in a repeated slot
   removeSlotComponent: (slotName, index)->
-    if !(slotName in @slots) then return false
+    if !(slot_class = @_module.slots[slotName])? then return -1
     if !(@slots[slotName] instanceof Array) then return false
     @slots[slotName][index].parent = undefined
+    @slots[slotName][index].unbindFromComponentProperty slot_class
     @slots[slotName].splice index, 1
     @_api.slots[slotName].splice index, 1
     return true
 
   # Remove all components in a slot
   emptySlot: (slotName)->
-    if !(slotName in @slots) then return
+    if !(slot_class = @_module.slots[slotName])? then return -1
     if @slots[slotName] instanceof Array
-      slot.parent = undefined for slot in @slots[slotName]
+      for slot in @slots[slotName]
+        slot.parent = undefined
+        slot.unbindFromComponentProperty(slot_class)
     else
       @slots[slotName].parent = undefined
+      @slots[slotName].unbindFromComponentProperty(slot_class)
     delete @slots[slotName]
     delete @_api.slots[slotName]
     @rerender()
@@ -151,6 +168,53 @@ class window.SUITE.Component
       Array.prototype.push.apply(all, c.allSubComponents())
     return all
 
+
+  # EVENT HANDLERS ==========================================================================
+
+  # Add a handler for a SUITE event (different from HTML events, see events.coffee)
+  addHandler: (event, func) ->
+    if !@_handlers[event]? then @_handlers[event] = []
+    if func instanceof Array
+      @_handlers[event].push(f) for f in func
+    else
+      @_handlers[event].push func
+
+  removeHandler: (event, func) ->
+    if !@_handlers[event]? then @_handlers[event] = []
+    @_handlers[event].filter (h)-> h != func
+
+  # Add all handlers in a ComponentProperty
+  bindToComponentProperty: (component, property)->
+    console.log property
+
+    # Handlers are bound to the api of the
+    boundHandler = (func)-> ()->
+      component._api._prepareAttrSetter()
+      args = (a for a in arguments) # ArgumentsList -> Array
+      if args? then args.unshift this else args = [this]
+      func.apply component._api, args
+
+    for type, handler_s of property.handlers
+      if handler_s instanceof Array
+        @addHandler type, boundHandler(s) for s in handler_s
+      else
+        @addHandler type, boundHandler(handler_s)
+
+  # Add all handlers in a ComponentProperty
+  unbindFromComponentProperty: (property)->
+    for type, handler_s of property.handlers
+      if handler_s instanceof Array
+        @removeHandler type, s for s in handler_s
+      else
+        @removeHandler type, handler_s
+
+  # Dispatch an event by calling all registered handlers
+  _dispatchEvent: (event, args)->
+    if !@_handlers[event]? then return
+    if !(args instanceof Array) then args = [args]
+    handler.apply(@_api,args) for handler in @_handlers[event]
+
+
   # HTML GENERATION =========================================================================
 
   render: (first_render = true)->
@@ -167,7 +231,6 @@ class window.SUITE.Component
     @_rootElement = @_module.render.call @_api, @slots
     cleanup()
 
-    @bindEventListeners()
     return @_rootElement
 
   rerender: ()->
@@ -178,16 +241,9 @@ class window.SUITE.Component
     olddom.parentNode.removeChild olddom
     return @_rootElement
 
-  # EVENT HANDLERS ==========================================================================
-
-  # Resize events
+  # Call the module's onResize function to update the HTML
   resize: (size)->
     if !@_module.onResize? then return
     cleanup = @_api._prepare @_module.super, "onResize"
     @_module.onResize.call @_api, size
     cleanup()
-
-  # Other events
-  bindEventListeners: ()->
-    for name, func of @_module.events
-      @_rootElement.addEventListener name, func.bind this

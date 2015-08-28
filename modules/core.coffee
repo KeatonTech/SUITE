@@ -12,8 +12,10 @@ new window.SUITE.ModuleBuilder("visible-element")
 
   .addProperty "x", [SUITE.PrimitiveType.Number], 0
   .addProperty "y", [SUITE.PrimitiveType.Number], 0
-  .addProperty "width", [SUITE.PrimitiveType.Number], 0
-  .addProperty "height", [SUITE.PrimitiveType.Number], 0
+  .addProperty "width", [SUITE.PrimitiveType.Number], 0, (val, oldval) ->
+    if val != oldval then @dispatchEvent "onResize", @size
+  .addProperty "height", [SUITE.PrimitiveType.Number], 0, (val, oldval) ->
+    if val != oldval then @dispatchEvent "onResize", @size
 
   .addStyle "positioned",
     left: ()-> @$x

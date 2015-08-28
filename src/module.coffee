@@ -32,7 +32,8 @@ class window.SUITE.Module
     @slots[name] = slot
 
   addHandler: (event, func) ->
-    @handlers[event] = func
+    if !@handlers[event]? then @handlers[event] = []
+    @handlers[event].push func
 
   addMethod: (name, func) ->
     if window.SUITE.Component.prototype.hasOwnProperty(name)
@@ -50,9 +51,9 @@ class window.SUITE.Module
     @super = existingModule = SUITE.modules[existingModuleName]
 
     for name, p of existingModule.properties
-      @properties[name] = p
+      @properties[name] = p.copy()
     for name, s of existingModule.slots
-      @slots[name] = s
+      @slots[name] = s.copy()
     for name, e of existingModule.events
       @events[name] = e
     for name, m of existingModule.handlers
@@ -77,7 +78,8 @@ class window.SUITE.Module
 
   # Allows property values to be changed when the component is resized.
   # Return true to indicate that a re-render is necessary
-  onResize: (size)-> slot.resize(size) for slot in @allSlotComponents()
+  onResize: (size)-> return @super(size)
+
 
 # Module adding helper functions
 window.SUITE.newModule = (name)->

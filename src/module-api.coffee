@@ -16,11 +16,16 @@ class window.SUITE.ModuleAPI
       prefixed = "$" + name
       Object.defineProperty @, prefixed, Object.getOwnPropertyDescriptor @_, prefixed
 
+    # Add custom methods from the module
+    for name, func of @_._module.methods
+      @[name] = @_[name]
+
     Object.defineProperty @, "size", get: ()-> return {width: @$width, height: @$height}
 
     # Passthrough
     @resize = @_.resize.bind @_
     @render = @_.render.bind @_
+    @dispatchEvent = @_._dispatchEvent.bind @_
     @hasPropertyValue = @_.hasPropertyValue.bind @_
     @fillSlot = @_.fillSlot.bind @_
     @removeSlotComponent = @_.removeSlotComponent.bind @_
@@ -51,16 +56,25 @@ class window.SUITE.ModuleAPI
 
     @super = ()->
       run = @_super_func
+      oldmod = @_super_module
 
       # Move up a level so if this new function calls super it'll still work
       @_super_module = @_super_module?.super
       @_super_func = @_super_module?[function_name]
 
       # Run the superfunction
-      if run? then run.apply this, arguments
+      if run? then result = run.apply this, arguments
+
+      # Move back up to the correct level
+      @_super_module = oldmod
+      @_super_func = run
+
+      return result
 
   _clearSuper: ()-> @super = undefined
 
+  setPropertyWithoutSetter: (name, val) ->
+    @_._values[name] = val
 
   # STORED HTML ELEMENTS ====================================================================
 
@@ -88,7 +102,6 @@ class window.SUITE.ModuleAPI
     if !style? then return false
     style.applyToElement @_, element
     return true
-
 
   # SLOTS ===================================================================================
 

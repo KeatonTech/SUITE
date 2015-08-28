@@ -29,6 +29,7 @@ window.SUITE =
 #@prepros-append ./helpers.coffee
 #@prepros-append ./types.coffee
 #@prepros-append ./property.coffee
+#@prepros-append ./events.coffee
 #@prepros-append ./module.coffee
 #@prepros-append ./animation.coffee
 #@prepros-append ./style.coffee
@@ -46,4 +47,5 @@ window.SUITE =
 #@prepros-append ../modules/core.coffee
 #@prepros-append ../modules/container.coffee
 #@prepros-append ../modules/box.coffee
+#@prepros-append ../modules/stack.coffee
 #@prepros-append ../modules/dialog.coffee

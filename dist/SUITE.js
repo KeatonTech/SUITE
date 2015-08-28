@@ -93,7 +93,7 @@
         this.type = window.SUITE.Type.apply(this.type);
       }
       if (type instanceof window.SUITE.Type && (type.component != null)) {
-        return window.SUITE.ComponentProperty(name, type, default_val, setter);
+        return window.SUITE.ComponentProperty(type, setter);
       }
       this.type = type;
       this["default"] = default_val;
@@ -101,6 +101,10 @@
         this.setter = setter;
       }
     }
+
+    Property.prototype.copy = function() {
+      return new window.SUITE.Property(this.type, this["default"], this.setter);
+    };
 
     return Property;
 
@@ -115,57 +119,43 @@
       this.element = element_name;
     }
 
+    EventListenerProperty.prototype.copy = function() {
+      var copy;
+      copy = EventListenerProperty.__super__.copy.call(this);
+      copy.listener = this.listener;
+      copy.element = this.element;
+      return copy;
+    };
+
     return EventListenerProperty;
 
   })(window.SUITE.Property);
 
   window.SUITE.ComponentProperty = (function() {
     function ComponentProperty(type, handlers) {
+      if (handlers == null) {
+        handlers = {};
+      }
       this.type = type;
-      this.onMove = handlers.onMove, this.onShift = handlers.onShift, this.onResize = handlers.onResize, this.onChange = handlers.onChange, this.onRender = handlers.onRender, this.onHide = handlers.onHide, this.onShow = handlers.onShow, this.onAdd = handlers.onAdd, this.onRemove = handlers.onRemove;
+      this.handlers = handlers;
     }
 
-    ComponentProperty.prototype.addHandler = function(name, func) {
-      var handler;
-      switch (name.toLowerCase()) {
-        case "onmove" || "move" || "moved":
-          handler = "onMove";
-          break;
-        case "onshift" || "shift" || "shifted":
-          handler = "onShift";
-          break;
-        case "onresize" || "resize" || "resized":
-          handler = "onResize";
-          break;
-        case "onchange" || "change" || "changed":
-          handler = "onChange";
-          break;
-        case "onrender" || "render" || "rendered":
-          handler = "onRender";
-          break;
-        case "onhide" || "hide" || "hid":
-          handler = "onHide";
-          break;
-        case "onshow" || "show" || "shown":
-          handler = "onShow";
-          break;
-        case "onadd" || "add" || "added":
-          handler = "onAdd";
-          break;
-        case "onremove" || "remove" || "removed":
-          handler = "onRemove";
-          break;
-        default:
-          return;
+    ComponentProperty.prototype.addHandler = function(event, func) {
+      if (this.handlers[event] == null) {
+        this.handlers[event] = [];
       }
-      if (this[handler] != null) {
-        if (!(this[handler] instanceof Array)) {
-          this[handler] = [this[handler]];
-        }
-        return this[handler].push(func);
-      } else {
-        return this[handler] = func;
+      return this.handlers[event].push(func);
+    };
+
+    ComponentProperty.prototype.copy = function() {
+      var e, h, handlers_copy, _ref;
+      handlers_copy = {};
+      _ref = this.handlers;
+      for (e in _ref) {
+        h = _ref[e];
+        handlers_copy[e] = h;
       }
+      return new SUITE.ComponentProperty(this.type, handlers_copy);
     };
 
     return ComponentProperty;
@@ -178,22 +168,38 @@
     function Slot(isRepeated, component_type, handlers) {
       var primative, type;
       this.isRepeated = isRepeated;
+      this.componentType = component_type;
       primative = SUITE.PrimitiveType;
       if (this.isRepeated) {
         type = new SUITE.Type(primative.Component, primative.List, component_type);
       } else {
         type = new SUITE.Type(primative.Component, primative.Single, component_type);
       }
-      Slot.__super__.constructor.call(this, "", type, handlers);
+      Slot.__super__.constructor.call(this, type, handlers);
     }
 
     Slot.prototype.allowComponent = function(component) {
       return true;
     };
 
+    Slot.prototype.copy = function() {
+      var e, h, handlers_copy, _ref;
+      handlers_copy = {};
+      _ref = this.handlers;
+      for (e in _ref) {
+        h = _ref[e];
+        handlers_copy[e] = h;
+      }
+      return new SUITE.Slot(this.isRepeated, this.componentType, handlers_copy);
+    };
+
     return Slot;
 
   })(window.SUITE.ComponentProperty);
+
+}).call(this);
+(function() {
+  window.SUITE.EventTypes = ["onMove", "onShift", "onResize", "onChange", "onRender", "onHide", "onShow", "onAdd", "onRemove"];
 
 }).call(this);
 (function() {
@@ -231,7 +237,10 @@
     };
 
     Module.prototype.addHandler = function(event, func) {
-      return this.handlers[event] = func;
+      if (this.handlers[event] == null) {
+        this.handlers[event] = [];
+      }
+      return this.handlers[event].push(func);
     };
 
     Module.prototype.addMethod = function(name, func) {
@@ -253,12 +262,12 @@
       _ref = existingModule.properties;
       for (name in _ref) {
         p = _ref[name];
-        this.properties[name] = p;
+        this.properties[name] = p.copy();
       }
       _ref1 = existingModule.slots;
       for (name in _ref1) {
         s = _ref1[name];
-        this.slots[name] = s;
+        this.slots[name] = s.copy();
       }
       _ref2 = existingModule.events;
       for (name in _ref2) {
@@ -298,14 +307,7 @@
     };
 
     Module.prototype.onResize = function(size) {
-      var slot, _i, _len, _ref, _results;
-      _ref = this.allSlotComponents();
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        slot = _ref[_i];
-        _results.push(slot.resize(size));
-      }
-      return _results;
+      return this["super"](size);
     };
 
     return Module;
@@ -574,7 +576,7 @@
 (function() {
   window.SUITE.ModuleAPI = (function() {
     function ModuleAPI(component) {
-      var name, prefixed, property, s, slot, _ref, _ref1;
+      var func, name, prefixed, property, s, slot, _ref, _ref1, _ref2;
       this._ = component;
       this.slots = {};
       _ref = this._.slots;
@@ -600,6 +602,11 @@
         prefixed = "$" + name;
         Object.defineProperty(this, prefixed, Object.getOwnPropertyDescriptor(this._, prefixed));
       }
+      _ref2 = this._._module.methods;
+      for (name in _ref2) {
+        func = _ref2[name];
+        this[name] = this._[name];
+      }
       Object.defineProperty(this, "size", {
         get: function() {
           return {
@@ -610,6 +617,7 @@
       });
       this.resize = this._.resize.bind(this._);
       this.render = this._.render.bind(this._);
+      this.dispatchEvent = this._._dispatchEvent.bind(this._);
       this.hasPropertyValue = this._.hasPropertyValue.bind(this._);
       this.fillSlot = this._.fillSlot.bind(this._);
       this.removeSlotComponent = this._.removeSlotComponent.bind(this._);
@@ -636,18 +644,26 @@
       this._super_module = super_module;
       this._super_func = this._super_module[function_name];
       return this["super"] = function() {
-        var run, _ref, _ref1;
+        var oldmod, result, run, _ref, _ref1;
         run = this._super_func;
+        oldmod = this._super_module;
         this._super_module = (_ref = this._super_module) != null ? _ref["super"] : void 0;
         this._super_func = (_ref1 = this._super_module) != null ? _ref1[function_name] : void 0;
         if (run != null) {
-          return run.apply(this, arguments);
+          result = run.apply(this, arguments);
         }
+        this._super_module = oldmod;
+        this._super_func = run;
+        return result;
       };
     };
 
     ModuleAPI.prototype._clearSuper = function() {
       return this["super"] = void 0;
+    };
+
+    ModuleAPI.prototype.setPropertyWithoutSetter = function(name, val) {
+      return this._._values[name] = val;
     };
 
     ModuleAPI.prototype.appendElement = function(root_or_element, element) {
@@ -713,7 +729,7 @@
 
   window.SUITE.Component = (function() {
     function Component(module_or_name) {
-      var func, name, slot, _ref, _ref1;
+      var event, func, name, slot, _ref, _ref1, _ref2;
       this.parent = void 0;
       this._rootElement = void 0;
       this._elements = {};
@@ -735,13 +751,26 @@
           this.slots[name] = [];
         }
       }
-      this._api = new SUITE.ModuleAPI(this);
       _ref1 = this._module.methods;
       for (name in _ref1) {
         func = _ref1[name];
-        this[name] = func.bind(this._api);
+        this[name] = ((function(_this) {
+          return function(func) {
+            return function() {
+              _this._api._prepareAttrSetter();
+              return func.apply(_this._api, arguments);
+            };
+          };
+        })(this))(func);
+      }
+      this._handlers = {};
+      _ref2 = this._module.handlers;
+      for (event in _ref2) {
+        func = _ref2[event];
+        this.addHandler(event, func);
       }
       this._changeListeners = {};
+      this._api = new SUITE.ModuleAPI(this);
     }
 
     Component.prototype.copy = function() {
@@ -811,6 +840,7 @@
                   var oldval;
                   oldval = _this._values[name];
                   _this._values[name] = val;
+                  _this._api._prepareAttrSetter();
                   return _this._runPropertyChangeListeners(name, val, oldval);
                 };
               }
@@ -857,6 +887,7 @@
         return -1;
       }
       component.parent = this;
+      component.bindToComponentProperty(this, slot_class);
       index = 0;
       if (slot_class.isRepeated) {
         if (!(__indexOf.call(this.slots, slotName) >= 0)) {
@@ -866,6 +897,9 @@
         this.slots[slotName].push(component);
         this._api.slots[slotName].push(component._api);
       } else {
+        if (this.slots[slotName] != null) {
+          this.slots[slotName].unbindFromComponentProperty(slot_class);
+        }
         this.slots[slotName] = component;
         this._api.slots[slotName] = component._api;
       }
@@ -874,31 +908,35 @@
     };
 
     Component.prototype.removeSlotComponent = function(slotName, index) {
-      if (!(__indexOf.call(this.slots, slotName) >= 0)) {
-        return false;
+      var slot_class;
+      if ((slot_class = this._module.slots[slotName]) == null) {
+        return -1;
       }
       if (!(this.slots[slotName] instanceof Array)) {
         return false;
       }
       this.slots[slotName][index].parent = void 0;
+      this.slots[slotName][index].unbindFromComponentProperty(slot_class);
       this.slots[slotName].splice(index, 1);
       this._api.slots[slotName].splice(index, 1);
       return true;
     };
 
     Component.prototype.emptySlot = function(slotName) {
-      var slot, _i, _len, _ref;
-      if (!(__indexOf.call(this.slots, slotName) >= 0)) {
-        return;
+      var slot, slot_class, _i, _len, _ref;
+      if ((slot_class = this._module.slots[slotName]) == null) {
+        return -1;
       }
       if (this.slots[slotName] instanceof Array) {
         _ref = this.slots[slotName];
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           slot = _ref[_i];
           slot.parent = void 0;
+          slot.unbindFromComponentProperty(slot_class);
         }
       } else {
         this.slots[slotName].parent = void 0;
+        this.slots[slotName].unbindFromComponentProperty(slot_class);
       }
       delete this.slots[slotName];
       delete this._api.slots[slotName];
@@ -935,6 +973,117 @@
       return all;
     };
 
+    Component.prototype.addHandler = function(event, func) {
+      var f, _i, _len, _results;
+      if (this._handlers[event] == null) {
+        this._handlers[event] = [];
+      }
+      if (func instanceof Array) {
+        _results = [];
+        for (_i = 0, _len = func.length; _i < _len; _i++) {
+          f = func[_i];
+          _results.push(this._handlers[event].push(f));
+        }
+        return _results;
+      } else {
+        return this._handlers[event].push(func);
+      }
+    };
+
+    Component.prototype.removeHandler = function(event, func) {
+      if (this._handlers[event] == null) {
+        this._handlers[event] = [];
+      }
+      return this._handlers[event].filter(function(h) {
+        return h !== func;
+      });
+    };
+
+    Component.prototype.bindToComponentProperty = function(component, property) {
+      var boundHandler, handler_s, s, type, _ref, _results;
+      console.log(property);
+      boundHandler = function(func) {
+        return function() {
+          var a, args;
+          component._api._prepareAttrSetter();
+          args = (function() {
+            var _i, _len, _results;
+            _results = [];
+            for (_i = 0, _len = arguments.length; _i < _len; _i++) {
+              a = arguments[_i];
+              _results.push(a);
+            }
+            return _results;
+          }).apply(this, arguments);
+          if (args != null) {
+            args.unshift(this);
+          } else {
+            args = [this];
+          }
+          return func.apply(component._api, args);
+        };
+      };
+      _ref = property.handlers;
+      _results = [];
+      for (type in _ref) {
+        handler_s = _ref[type];
+        if (handler_s instanceof Array) {
+          _results.push((function() {
+            var _i, _len, _results1;
+            _results1 = [];
+            for (_i = 0, _len = handler_s.length; _i < _len; _i++) {
+              s = handler_s[_i];
+              _results1.push(this.addHandler(type, boundHandler(s)));
+            }
+            return _results1;
+          }).call(this));
+        } else {
+          _results.push(this.addHandler(type, boundHandler(handler_s)));
+        }
+      }
+      return _results;
+    };
+
+    Component.prototype.unbindFromComponentProperty = function(property) {
+      var handler_s, s, type, _ref, _results;
+      _ref = property.handlers;
+      _results = [];
+      for (type in _ref) {
+        handler_s = _ref[type];
+        if (handler_s instanceof Array) {
+          _results.push((function() {
+            var _i, _len, _results1;
+            _results1 = [];
+            for (_i = 0, _len = handler_s.length; _i < _len; _i++) {
+              s = handler_s[_i];
+              _results1.push(this.removeHandler(type, s));
+            }
+            return _results1;
+          }).call(this));
+        } else {
+          _results.push(this.removeHandler(type, handler_s));
+        }
+      }
+      return _results;
+    };
+
+    Component.prototype._dispatchEvent = function(event, args) {
+      var handler, _i, _len, _ref, _results;
+      if (this._handlers[event] == null) {
+        return;
+      }
+      if (!(args instanceof Array)) {
+        args = [args];
+      }
+      _ref = this._handlers[event];
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        handler = _ref[_i];
+        _results.push(handler.apply(this._api, args));
+      }
+      return _results;
+    };
+
     Component.prototype.render = function(first_render) {
       var cleanup;
       if (first_render == null) {
@@ -951,7 +1100,6 @@
       cleanup = this._api._prepare(this._module["super"], "render");
       this._rootElement = this._module.render.call(this._api, this.slots);
       cleanup();
-      this.bindEventListeners();
       return this._rootElement;
     };
 
@@ -975,17 +1123,6 @@
       cleanup = this._api._prepare(this._module["super"], "onResize");
       this._module.onResize.call(this._api, size);
       return cleanup();
-    };
-
-    Component.prototype.bindEventListeners = function() {
-      var func, name, _ref, _results;
-      _ref = this._module.events;
-      _results = [];
-      for (name in _ref) {
-        func = _ref[name];
-        _results.push(this._rootElement.addEventListener(name, func.bind(this)));
-      }
-      return _results;
     };
 
     return Component;
@@ -1101,6 +1238,11 @@
       return this;
     };
 
+    ModuleBuilder.prototype.addEventHandler = function(event, func) {
+      this.module.addHandler(event, func);
+      return this;
+    };
+
     ModuleBuilder.prototype.addSlot = function(name, isRepeated, allowType) {
       if (isRepeated == null) {
         isRepeated = false;
@@ -1109,6 +1251,14 @@
       if (allowType != null) {
         this.module.slots[name].allowType = allowType;
       }
+      return this;
+    };
+
+    ModuleBuilder.prototype.addSlotEventHandler = function(name, event, func) {
+      if (this.module.slots[name] == null) {
+        return;
+      }
+      this.module.slots[name].addHandler(event, func);
       return this;
     };
 
@@ -1253,7 +1403,15 @@
     return this.setAttrs({
       "class": val
     });
-  }).addProperty("x", [SUITE.PrimitiveType.Number], 0).addProperty("y", [SUITE.PrimitiveType.Number], 0).addProperty("width", [SUITE.PrimitiveType.Number], 0).addProperty("height", [SUITE.PrimitiveType.Number], 0).addStyle("positioned", {
+  }).addProperty("x", [SUITE.PrimitiveType.Number], 0).addProperty("y", [SUITE.PrimitiveType.Number], 0).addProperty("width", [SUITE.PrimitiveType.Number], 0, function(val, oldval) {
+    if (val !== oldval) {
+      return this.dispatchEvent("onResize", this.size);
+    }
+  }).addProperty("height", [SUITE.PrimitiveType.Number], 0, function(val, oldval) {
+    if (val !== oldval) {
+      return this.dispatchEvent("onResize", this.size);
+    }
+  }).addStyle("positioned", {
     left: function() {
       return this.$x;
     },
@@ -1342,20 +1500,7 @@
 
 }).call(this);
 (function() {
-  new window.SUITE.ModuleBuilder("box").extend("container").addProperty("minWidth", [SUITE.PrimitiveType.Number]).addProperty("minHeight", [SUITE.PrimitiveType.Number]).addProperty("maxWidth", [SUITE.PrimitiveType.Number]).addProperty("maxHeight", [SUITE.PrimitiveType.Number]).setInitializer(function() {
-    if (this.$maxWidth == null) {
-      this.$maxWidth = this.$width;
-    }
-    if (this.$minWidth == null) {
-      this.$minWidth = this.$width;
-    }
-    if (this.$maxHeight == null) {
-      this.$maxHeight = this.$height;
-    }
-    if (this.$minHeight == null) {
-      return this.$minHeight = this.$height;
-    }
-  }).setOnResize(function(size) {
+  new window.SUITE.ModuleBuilder("box").extend("container").addProperty("minWidth", [SUITE.PrimitiveType.Number]).addProperty("minHeight", [SUITE.PrimitiveType.Number]).addProperty("maxWidth", [SUITE.PrimitiveType.Number]).addProperty("maxHeight", [SUITE.PrimitiveType.Number]).setOnResize(function(size) {
     if ((this.$maxWidth != null) && (this.$minWidth != null)) {
       this.$width = parseInt(Math.max(Math.min(size.width, this.$maxWidth), this.$minWidth));
     }
@@ -1380,6 +1525,41 @@
     div = this["super"]();
     this.applyStyle(div, "floating");
     return div;
+  }).register();
+
+}).call(this);
+(function() {
+  new window.SUITE.ModuleBuilder("stack").extend("floating-box").removeProperty("maxWidth").removeProperty("maxHeight").addProperty("justify", [SUITE.PrimitiveType.Number], 0.5).addProperty("spacing", [SUITE.PrimitiveType.Number], 0).addMethod("_relayout", function() {
+    var child, stack_width, total_height, _i, _j, _len, _len1, _ref, _ref1;
+    stack_width = 0;
+    _ref = this.slots.children;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      child = _ref[_i];
+      stack_width = Math.max(child.$width, stack_width);
+    }
+    this.$width = stack_width;
+    total_height = 0;
+    _ref1 = this.slots.children;
+    for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+      child = _ref1[_j];
+      child.$x = this.$width / 2 - child.$width / 2;
+      child.$y = total_height;
+      total_height += child.$height + this.$spacing;
+    }
+    return this.$height = total_height - this.$spacing;
+  }).setRenderer(function() {
+    var div;
+    div = this["super"]();
+    wait(1, (function(_this) {
+      return function() {
+        return _this._relayout();
+      };
+    })(this));
+    return div;
+  }).addEventHandler("onResize", function(size) {
+    return this._relayout();
+  }).addSlotEventHandler("children", "onResize", function(size) {
+    return this._relayout();
   }).register();
 
 }).call(this);
