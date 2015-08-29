@@ -15,4 +15,6 @@ new window.SUITE.ModuleBuilder("box")
     if @$maxHeight? and @$minHeight?
       @$height = parseInt Math.max(Math.min(size.height, @$maxHeight), @$minHeight)
 
+    slot.resize(@size) for slot in @slots.children
+
   .register()

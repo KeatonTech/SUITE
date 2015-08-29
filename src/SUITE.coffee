@@ -49,6 +49,7 @@ window.SUITE =
 # CORE MODULES ==============================================================================
 #@prepros-append ../modules/core/core.coffee
 #@prepros-append ../modules/core/container.coffee
+#@prepros-append ../modules/core/html.coffee
 #@prepros-append ../modules/core/layouts.coffee
 #@prepros-append ../modules/core/box.coffee
 #@prepros-append ../modules/core/text.coffee

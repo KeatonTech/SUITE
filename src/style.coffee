@@ -59,10 +59,12 @@ class window.SUITE.Style
         @has_static = true
         @static[attr] = val
 
+  CSSSelector: ()-> return "." + @id
+
   # Static properties are stored in a stylesheet
   generateCSS: ()->
     body = ("#{attr}: #{val};" for attr, val of @static).join("")
-    return ".#{@id}{#{body}}\n"
+    return "#{@CSSSelector()}{#{body}}\n"
 
   # Apply this style to a child element of a component
   applyToElement: (component, element)->
@@ -88,6 +90,12 @@ class window.SUITE.Style
 
     return true
 
+# A style with a different kind of selector
+class window.SUITE.CSSRule extends window.SUITE.Style
+  constructor: (selector, attributes)->
+    super selector, attributes
+    @selector = selector
+  CSSSelector: ()-> return @selector
 
 # Dynamic attributes are functions that can rely on object property values
 class window.SUITE.DynamicStyleAttribute

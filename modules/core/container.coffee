@@ -13,8 +13,8 @@ new window.SUITE.ModuleBuilder("container")
 
   # Containers fill their available space
   .setOnResize (size)->
-    @$width = size.width
-    @$height = size.height
+    @$width = size.width - @$x
+    @$height = size.height - @$y
     slot.resize(size) for slot in @slots.children
 
   .register()

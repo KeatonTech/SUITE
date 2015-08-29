@@ -458,7 +458,9 @@
 
 }).call(this);
 (function() {
-  var __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+  var __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
+    __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   window.SUITE.UnitlessAttributes = ["opacity", "zIndex", "fontWeight", "lineHeight", "counterIncrement", "counterReset", "flexGrow", "flexShrink", "volume", "stress", "pitchRange", "richness"];
 
@@ -512,6 +514,10 @@
       }
     }
 
+    Style.prototype.CSSSelector = function() {
+      return "." + this.id;
+    };
+
     Style.prototype.generateCSS = function() {
       var attr, body, val;
       body = ((function() {
@@ -524,7 +530,7 @@
         }
         return _results;
       }).call(this)).join("");
-      return "." + this.id + "{" + body + "}\n";
+      return "" + (this.CSSSelector()) + "{" + body + "}\n";
     };
 
     Style.prototype.applyToElement = function(component, element) {
@@ -562,6 +568,22 @@
     return Style;
 
   })();
+
+  window.SUITE.CSSRule = (function(_super) {
+    __extends(CSSRule, _super);
+
+    function CSSRule(selector, attributes) {
+      CSSRule.__super__.constructor.call(this, selector, attributes);
+      this.selector = selector;
+    }
+
+    CSSRule.prototype.CSSSelector = function() {
+      return this.selector;
+    };
+
+    return CSSRule;
+
+  })(window.SUITE.Style);
 
   window.SUITE.DynamicStyleAttribute = (function() {
     function DynamicStyleAttribute(func, needs_unit) {
@@ -1652,8 +1674,8 @@
     return div;
   }).setOnResize(function(size) {
     var slot, _i, _len, _ref, _results;
-    this.$width = size.width;
-    this.$height = size.height;
+    this.$width = size.width - this.$x;
+    this.$height = size.height - this.$y;
     _ref = this.slots.children;
     _results = [];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -1661,6 +1683,25 @@
       _results.push(slot.resize(size));
     }
     return _results;
+  }).register();
+
+}).call(this);
+(function() {
+  new window.SUITE.ModuleBuilder("html").extend("container").addProperty("html", [SUITE.PrimitiveType.String], void 0, function(val) {
+    if (this.rootElement == null) {
+      return;
+    }
+    return this.rootElement.innerHTML = val;
+  }).setInitializer(function() {
+    return new SUITE.StyleManager().addStyle(new SUITE.CSSRule("." + SUITE.config.id_prefix + "htmlblock *", {
+      position: "static"
+    }));
+  }).setRenderer(function() {
+    var div;
+    div = this["super"]();
+    div.className += SUITE.config.id_prefix + "htmlblock";
+    div.innerHTML = this.$html;
+    return div;
   }).register();
 
 }).call(this);
@@ -1728,12 +1769,20 @@
 }).call(this);
 (function() {
   new window.SUITE.ModuleBuilder("box").extend("container").addProperty("minWidth", [SUITE.PrimitiveType.Number]).addProperty("minHeight", [SUITE.PrimitiveType.Number]).addProperty("maxWidth", [SUITE.PrimitiveType.Number]).addProperty("maxHeight", [SUITE.PrimitiveType.Number]).setOnResize(function(size) {
+    var slot, _i, _len, _ref, _results;
     if ((this.$maxWidth != null) && (this.$minWidth != null)) {
       this.$width = parseInt(Math.max(Math.min(size.width, this.$maxWidth), this.$minWidth));
     }
     if ((this.$maxHeight != null) && (this.$minHeight != null)) {
-      return this.$height = parseInt(Math.max(Math.min(size.height, this.$maxHeight), this.$minHeight));
+      this.$height = parseInt(Math.max(Math.min(size.height, this.$maxHeight), this.$minHeight));
     }
+    _ref = this.slots.children;
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      slot = _ref[_i];
+      _results.push(slot.resize(this.size));
+    }
+    return _results;
   }).register();
 
 }).call(this);
