@@ -8,54 +8,50 @@
       var stage = new SUITE.Stage("body");
       window.table = SUITE.ParseTemplate({
         "<float-layout>": {
-          child: {
-            "<row>": {
+          "<row>": {
+            $spacing: 10,
+            $verticalAlign: 0,
+            "<column@col1>": {
               $spacing: 10,
-              $verticalAlign: 0,
-              children: {
-                "<column@col1>": {
-                  $spacing: 10,
-                  $fill: "#222",
-                  children: {
-                    "<box@t1>": {
-                      $width: 200,
-                      $height: 100,
-                      $fill: "#f00"
-                    },
-                    "<box@m1>": {
-                      $width: 220,
-                      $height: 10,
-                      $fill: "#0f0"
-                    },
-                    "<box@b1>": {
-                      $width: 100,
-                      $height: 100,
-                      $fill: "#00f"
-                    }
-                  }
+              $fill: "#222",
+              children: [
+                "<box>", {
+                  $width: 200,
+                  $height: 100,
+                  $fill: "#f00"
                 },
-                "<column@col2>": {
-                  $spacing: 10,
-                  $fill: "#333",
-                  children: {
-                    "<box@t2>": {
-                      $width: 100,
-                      $height: 100,
-                      $fill: "#ff0"
-                    },
-                    "<box@m2>": {
-                      $width: 40,
-                      $height: 90,
-                      $fill: "#0ff"
-                    },
-                    "<box@b2>": {
-                      $width: 200,
-                      $height: 100,
-                      $fill: "#f0f"
-                    }
-                  }
+                "<box>", {
+                  $width: 220,
+                  $height: 10,
+                  $fill: "#0f0"
                 },
-              }
+                "<box>", {
+                  $width: 100,
+                  $height: 100,
+                  $fill: "#00f"
+                }
+              ]
+            },
+            "<column@col2>": {
+              $spacing: 10,
+              $fill: "#333",
+              children: [
+                "<box>", {
+                  $width: 100,
+                  $height: 100,
+                  $fill: "#ff0"
+                },
+                "<box>", {
+                  $width: 40,
+                  $height: 90,
+                  $fill: "#0ff"
+                },
+                "<box>", {
+                  $width: 200,
+                  $height: 100,
+                  $fill: "#f0f"
+                }
+              ]
             }
           }
         }

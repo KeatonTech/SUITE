@@ -26,6 +26,7 @@ class window.SUITE.ModuleAPI
     # Passthrough
     @resize = @_.resize.bind @_
     @render = @_.render.bind @_
+    @unrender = @_.unrender.bind @_
     @dispatchEvent = @_._dispatchEvent.bind @_
     @hasPropertyValue = @_.hasPropertyValue.bind @_
     @fillSlot = @_.fillSlot.bind @_
@@ -73,6 +74,10 @@ class window.SUITE.ModuleAPI
       return result
 
   _clearSuper: ()-> @super = undefined
+
+  # HELPER FUNCTIONS ========================================================================
+
+  isRendered: ()-> return @_._rootElement?
 
   setPropertyWithoutSetter: (name, val) ->
     @_._values[name] = val

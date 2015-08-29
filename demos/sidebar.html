@@ -10,43 +10,43 @@
         "<pinned-layout@open>": {
           $top: 15,
           $right: 15,
-          child: {
-            "<button>": {
-              $width: 30,
-              $height: 30,
-              $fill: "#444",
-              $onClick: function(){
-                sidebar.sidebar.$shown = !sidebar.sidebar.$shown
-              }
-            },
+
+          // Button that opens the sidebar
+          "<button>": {
+            $width: 30,
+            $height: 30,
+            $fill: "#444",
+            $onClick: function(){
+              sidebar.sidebar.$shown = !sidebar.sidebar.$shown
+            }
           }
         },
         "<sidebar-layout@sidebar>": {
           $pinLeft: false,
           $slideTime: 150,
-          child: {
-            "<box@box>": {
-              $width: 250,
-              children: {
-                "<pinned-layout@close>": {
-                  $top: 15,
-                  $right: 15,
-                  child: {
-                    "<button>": {
-                      $width: 30,
-                      $height: 30,
-                      $fill: "#f00",
-                      $onClick: function(){
-                        sidebar.sidebar.hide()
-                      }
-                    }
-                  }
-                },
-                "<html>": {
-                  $y: 50,
-                  $html: "<h1>Sidebar</h1>"
+
+          // The box is the actual sidebar view. It defines the width.
+          "<box@box>": {
+            $width: 250,
+
+            // Close button
+            "<pinned-layout@close>": {
+              $top: 15,
+              $right: 15,
+              "<button>": {
+                $width: 30,
+                $height: 30,
+                $fill: "#f00",
+                $onClick: function(){
+                  sidebar.sidebar.hide()
                 }
               }
+            },
+
+            // Sidebar content
+            "<html>": {
+              $y: 50,
+              $html: "<h1>Sidebar</h1>"
             }
           }
         }

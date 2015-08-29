@@ -768,6 +768,7 @@
       });
       this.resize = this._.resize.bind(this._);
       this.render = this._.render.bind(this._);
+      this.unrender = this._.unrender.bind(this._);
       this.dispatchEvent = this._._dispatchEvent.bind(this._);
       this.hasPropertyValue = this._.hasPropertyValue.bind(this._);
       this.fillSlot = this._.fillSlot.bind(this._);
@@ -811,6 +812,10 @@
 
     ModuleAPI.prototype._clearSuper = function() {
       return this["super"] = void 0;
+    };
+
+    ModuleAPI.prototype.isRendered = function() {
+      return this._._rootElement != null;
     };
 
     ModuleAPI.prototype.setPropertyWithoutSetter = function(name, val) {
@@ -1273,6 +1278,11 @@
       return this._rootElement;
     };
 
+    Component.prototype.unrender = function() {
+      this._rootElement.parentNode.removeChild(this._rootElement);
+      return this._rootElement = void 0;
+    };
+
     Component.prototype.resize = function(size) {
       var cleanup;
       if (this._module.onResize == null) {
@@ -1489,7 +1499,7 @@
 }).call(this);
 (function() {
   window.SUITE.ParseTemplate = function(json) {
-    var build_recursive, container, new_template, parse_selector, properties, selector, selector_regex, single_key, single_template, template;
+    var build_recursive, container, iterate_properties, new_template, parse_selector, properties, selector, selector_regex, single_key, single_template, template;
     if (Object.keys(json).length === 0) {
       return;
     }
@@ -1518,8 +1528,28 @@
       classes = classes != null ? classes.replace(".", " ") : void 0;
       return [component, jsvar, id, classes];
     };
+    iterate_properties = function(properties) {
+      var i, name, tuples, val, _i, _ref;
+      tuples = [];
+      if (properties instanceof Array) {
+        if (properties.length % 2 === 1) {
+          throw new Error("Invalid properties array: Must have an even length.");
+        }
+        for (i = _i = 0, _ref = properties.length / 2; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
+          tuples.push([properties[i * 2], properties[i * 2 + 1]]);
+        }
+      } else if (properties instanceof Object) {
+        for (name in properties) {
+          val = properties[name];
+          tuples.push([name, val]);
+        }
+      } else {
+        throw new Error("Expected Object or Array for template properties");
+      }
+      return tuples;
+    };
     build_recursive = function(selector, properties, template) {
-      var classes, comp_count, component, component_name, id, jsvar, name, slot_properties, slot_selector, top_level, val, _ref;
+      var classes, comp_count, component, component_name, id, jsvar, name, slot_name, slot_properties, slot_selector, top_level, val, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4;
       _ref = parse_selector(selector), component_name = _ref[0], jsvar = _ref[1], id = _ref[2], classes = _ref[3];
       component = new SUITE.Component(component_name);
       if ((id != null) && component.hasPropertyValue("id")) {
@@ -1532,22 +1562,30 @@
       if (top_level) {
         template = new SUITE.Template(component);
       }
-      for (name in properties) {
-        val = properties[name];
+      _ref1 = iterate_properties(properties);
+      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+        _ref2 = _ref1[_i], name = _ref2[0], val = _ref2[1];
         if (name[0] === "$") {
           component[name] = val;
-        } else if (component._module.slots[name] != null) {
-          if (!(properties instanceof Object)) {
-            throw new Error("Expected component(s) on slot '" + name + "', got " + (typeof properties));
+        } else if (name[0] === "<") {
+          if (Object.keys(component._module.slots).length !== 1) {
+            throw new Error("Cannot add children on the top level: Module has multiple slots");
           }
-          if (comp_count = Object.keys(properties).length === 0) {
+          slot_name = Object.keys(component._module.slots)[0];
+          component.fillSlot(slot_name, build_recursive(name, val, template));
+        } else if (component._module.slots[name] != null) {
+          if (!(val instanceof Object) && !(val instanceof Array)) {
+            throw new Error("Expected component(s) on slot '" + name + "', got " + (typeof val));
+          }
+          if (comp_count = Object.keys(val).length === 0) {
             throw new Error("Expected component(s) on slot '" + name + "', got none");
           }
           if (!component._module.slots[name].isRepeated && comp_count > 1) {
             throw new Error("Slot '" + name + "' can only accept 1 component, got " + comp_count);
           }
-          for (slot_selector in val) {
-            slot_properties = val[slot_selector];
+          _ref3 = iterate_properties(val);
+          for (_j = 0, _len1 = _ref3.length; _j < _len1; _j++) {
+            _ref4 = _ref3[_j], slot_selector = _ref4[0], slot_properties = _ref4[1];
             component.fillSlot(name, build_recursive(slot_selector, slot_properties, template));
           }
         } else {

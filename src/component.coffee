@@ -108,7 +108,7 @@ class window.SUITE.Component
     # Allow for some flexibility
     if component instanceof SUITE.Template then component = component._component
     if component instanceof SUITE.ModuleAPI then component = component._
-    
+
     if !slot_class.allowComponent(component) then return -1
     component.parent = this
     component.bindToComponentProperty this, slot_class
@@ -242,6 +242,10 @@ class window.SUITE.Component
     olddom.parentNode.insertBefore @_rootElement, olddom
     olddom.parentNode.removeChild olddom
     return @_rootElement
+    
+  unrender: ()->
+    @_rootElement.parentNode.removeChild @_rootElement
+    @_rootElement = undefined
 
   # Call the module's onResize function to update the HTML
   resize: (size)->

@@ -31,6 +31,19 @@ window.SUITE.ParseTemplate = (json)->
     classes = if classes? then classes.replace ".", " "
     return [component, jsvar, id, classes]
 
+  # Allows build_recursive to work with either objects or arrays
+  iterate_properties = (properties)->
+    tuples = []
+    if properties instanceof Array
+      if properties.length % 2 is 1
+        throw new Error "Invalid properties array: Must have an even length."
+      for i in [0...properties.length/2]
+        tuples.push [properties[i*2], properties[i*2+1]]
+    else if properties instanceof Object
+      tuples.push([name, val]) for name, val of properties
+    else throw new Error "Expected Object or Array for template properties"
+    return tuples
+
   # This is where the magic happens
   build_recursive = (selector, properties, template)->
     [component_name, jsvar, id, classes] = parse_selector selector
@@ -41,17 +54,26 @@ window.SUITE.ParseTemplate = (json)->
     top_level = !template?
     if top_level then template = new SUITE.Template component
 
-    for name, val of properties
+    for [name, val] in iterate_properties properties
       if name[0] == "$" then component[name] = val
+
+      # When there is only one slot, components can be added on the top level
+      else if name[0] == "<"
+        if Object.keys(component._module.slots).length != 1
+          throw new Error "Cannot add children on the top level: Module has multiple slots"
+        slot_name = Object.keys(component._module.slots)[0]
+        component.fillSlot slot_name, build_recursive(name, val, template)
+
+      # If there are multiple slots, they must be named
       else if component._module.slots[name]?
-        if !(properties instanceof Object)
-          throw new Error "Expected component(s) on slot '#{name}', got #{typeof properties}"
-        if comp_count = Object.keys(properties).length == 0
+        if !(val instanceof Object) and !(val instanceof Array)
+          throw new Error "Expected component(s) on slot '#{name}', got #{typeof val}"
+        if comp_count = Object.keys(val).length == 0
           throw new Error "Expected component(s) on slot '#{name}', got none"
         if !component._module.slots[name].isRepeated and comp_count > 1
           throw new Error "Slot '#{name}' can only accept 1 component, got #{comp_count}"
 
-        for slot_selector, slot_properties of val
+        for [slot_selector, slot_properties] in iterate_properties val
           component.fillSlot name, build_recursive(slot_selector, slot_properties, template)
 
       else

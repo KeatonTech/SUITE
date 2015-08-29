@@ -72,6 +72,16 @@ SUITE.AnimateChanges(new SUITE.Transition(300, "linear"), function(){
 });
 ```
 
+**Pro Tip:** Most components have only one named slot. In these cases, it is not necessary
+to label the slot in the template. You can simply add child elements on the top level.
+
+```coffeescript
+SUITE.ParseTemplate
+  "<container>":
+    "<text>":
+      $string: "SO EASY!"
+```
+
 ### Building a new module
 The easiest way to create your own modules is to use the ModuleBuilder, based off of Java's
 famous builder pattern. It allows you to configure your module, override functions, add

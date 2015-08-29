@@ -7,13 +7,11 @@
       var stage = new SUITE.Stage("body");
       window.textlayout = SUITE.ParseTemplate({
         "<float-layout>": {
-          child: {
-            "<text@text>": {
-              $string: "Hello World!",
-              $color: "#da0",
-              $fontFamily: ["Open Sans", "Helvetica", "Arial", "sans-serif"],
-              $fontSize: 56
-            }
+          "<text@text>": {
+            $string: "Hello World!",
+            $color: "#da0",
+            $fontFamily: ["Open Sans", "Helvetica", "Arial", "sans-serif"],
+            $fontSize: 56
           }
         }
       });
