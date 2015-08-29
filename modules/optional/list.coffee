@@ -112,6 +112,9 @@ new window.SUITE.ModuleBuilder("list-item")
     return div
 
   # Containers fill their available space
-  .setOnResize (size)-> @$width = size.width
+  .setOnResize (size)->
+    @$width = size.width
+    if container = @getElement "container"
+      container.$width = @$width
 
   .register()

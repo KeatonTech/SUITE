@@ -55,6 +55,7 @@ new window.SUITE.ModuleBuilder("sidebar-layout")
 
     wait @$slideTime + 10, ()=>
       @removeElement "content_div"
+      @slots.child.unrender()
 
   .addStyle "sidebar",
     left: ()-> if @$pinLeft then @$position

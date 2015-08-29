@@ -125,7 +125,8 @@
     })(this));
     return wait(this.$slideTime + 10, (function(_this) {
       return function() {
-        return _this.removeElement("content_div");
+        _this.removeElement("content_div");
+        return _this.slots.child.unrender();
       };
     })(this));
   }).addStyle("sidebar", {
@@ -275,7 +276,11 @@
     }
     return div;
   }).setOnResize(function(size) {
-    return this.$width = size.width;
+    var container;
+    this.$width = size.width;
+    if (container = this.getElement("container")) {
+      return container.$width = this.$width;
+    }
   }).register();
 
 }).call(this);

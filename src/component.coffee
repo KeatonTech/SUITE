@@ -115,7 +115,7 @@ class window.SUITE.Component
 
     index = 0
     if slot_class.isRepeated
-      if !(slotName in @slots) then @slots[slotName] = []
+      if !@slots[slotName]? then @slots[slotName] = []
       index = @slots.length
       @slots[slotName].push component
       @_api.slots[slotName].push component._api
@@ -244,8 +244,12 @@ class window.SUITE.Component
     return @_rootElement
 
   unrender: ()->
-    @_rootElement.parentNode.removeChild @_rootElement
+    if !@_rootElement? then return
+    if @_rootElement.parentNode?
+      @_rootElement.parentNode.removeChild @_rootElement
     @_rootElement = undefined
+    for child in @allSlotComponents()
+      child.unrender()
 
   # Call the module's onResize function to update the HTML
   resize: (size)->

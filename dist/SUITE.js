@@ -885,8 +885,6 @@ window.SUITE.ModuleAPI = (function() {
   return ModuleAPI;
 
 })();
-var __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
-
 window.SUITE.Component = (function() {
   function Component(module_or_name) {
     var event, func, name, slot, _ref, _ref1, _ref2;
@@ -1050,7 +1048,7 @@ window.SUITE.Component = (function() {
     component.bindToComponentProperty(this, slot_class);
     index = 0;
     if (slot_class.isRepeated) {
-      if (!(__indexOf.call(this.slots, slotName) >= 0)) {
+      if (this.slots[slotName] == null) {
         this.slots[slotName] = [];
       }
       index = this.slots.length;
@@ -1275,8 +1273,21 @@ window.SUITE.Component = (function() {
   };
 
   Component.prototype.unrender = function() {
-    this._rootElement.parentNode.removeChild(this._rootElement);
-    return this._rootElement = void 0;
+    var child, _i, _len, _ref, _results;
+    if (this._rootElement == null) {
+      return;
+    }
+    if (this._rootElement.parentNode != null) {
+      this._rootElement.parentNode.removeChild(this._rootElement);
+    }
+    this._rootElement = void 0;
+    _ref = this.allSlotComponents();
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      child = _ref[_i];
+      _results.push(child.unrender());
+    }
+    return _results;
   };
 
   Component.prototype.resize = function(size) {
