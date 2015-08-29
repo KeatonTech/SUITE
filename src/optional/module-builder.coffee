@@ -9,6 +9,10 @@ class window.SUITE.ModuleBuilder
     @module.addProperty name_or_property, type, default_val, setter
     return this
 
+  setPropertyDefault: (name, default_val) ->
+    @module.properties[name].default = default_val
+    return this
+
   # Only necessary when used with copyFrom
   removeProperty: (name)->
     if @module.properties[name] then delete @module.properties[name]

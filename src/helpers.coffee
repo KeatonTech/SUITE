@@ -8,9 +8,10 @@ window._sh = window.SUITE.Helpers =
 
   time: (label, func)->
     start_time = new Date().getTime()
-    func()
+    result = func()
     diff = (new Date().getTime()) - start_time
     console.log "#{label} took #{diff}ms"
+    return result
 
   generateID: (len)->
     Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, len)

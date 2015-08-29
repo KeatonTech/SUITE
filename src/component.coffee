@@ -242,7 +242,7 @@ class window.SUITE.Component
     olddom.parentNode.insertBefore @_rootElement, olddom
     olddom.parentNode.removeChild olddom
     return @_rootElement
-    
+
   unrender: ()->
     @_rootElement.parentNode.removeChild @_rootElement
     @_rootElement = undefined

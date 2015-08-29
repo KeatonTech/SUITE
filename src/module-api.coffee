@@ -26,6 +26,7 @@ class window.SUITE.ModuleAPI
     # Passthrough
     @resize = @_.resize.bind @_
     @render = @_.render.bind @_
+    @rerender = @_.rerender.bind @_
     @unrender = @_.unrender.bind @_
     @dispatchEvent = @_._dispatchEvent.bind @_
     @hasPropertyValue = @_.hasPropertyValue.bind @_
@@ -55,6 +56,7 @@ class window.SUITE.ModuleAPI
 
     @_super_module = super_module
     @_super_func = @_super_module[function_name]
+    @_super_func_name = function_name
 
     @super = ()->
       run = @_super_func
@@ -71,9 +73,31 @@ class window.SUITE.ModuleAPI
       @_super_module = oldmod
       @_super_func = run
 
+      # Makes things work nice
+      if function_name is "render" then @_._rootElement = result
+
       return result
 
   _clearSuper: ()-> @super = undefined
+
+  supermodule: (class_name, args...)->
+    if !@_super_module? or !@_super_func? or !@_super_func_name? then return undefined
+
+    backup_module = @_super_module
+    backup_function = @_super_func
+
+    while @_super_module? and @_super_module.name isnt class_name
+      @_super_module = @_super_module.super
+      @_super_func = @_super_module?[@_super_func_name]
+
+    # Run the super function if possible
+    if @_super_module? and @_super_func?
+      result = @_super_func.apply this, args
+      if @_super_func_name is "render" then @_._rootElement = result
+
+    @_super_module = backup_module
+    @_super_func = backup_function
+    return result
 
   # HELPER FUNCTIONS ========================================================================
 

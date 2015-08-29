@@ -6,6 +6,17 @@
   <script type="text/javascript">
     window.onload = function(){
       var stage = new SUITE.Stage("body");
+
+      // Create a list of list-items
+      list_items = []
+      for(var i = 0; i < 1000; i++){
+        list_items.push("<list-item>");
+        list_items.push({
+          $title: "List item " + i,
+          $subtitle: "Here's some filler text"
+        });
+      }
+
       window.sidebar = SUITE.ParseTemplate({
         "<pinned-layout@open>": {
           $top: 15,
@@ -43,10 +54,14 @@
               }
             },
 
-            // Sidebar content
-            "<html>": {
+            // Sidebar list
+            "<list@list>": {
               $y: 50,
-              $html: "<h1>Sidebar</h1>"
+              $minWidth: 100,
+              $maxWidth: 99999,
+              $minHeight: 100,
+              $maxHeight: 99999,
+              children: list_items
             }
           }
         }

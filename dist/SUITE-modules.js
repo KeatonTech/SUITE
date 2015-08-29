@@ -166,3 +166,116 @@
   }).register();
 
 }).call(this);
+(function() {
+  new window.SUITE.ModuleBuilder("list").extend("box").addProperty("totalHeight", [SUITE.PrimitiveType.Number]).addMethod("_relayout", function() {
+    var child, total_height, _i, _len, _ref;
+    total_height = 0;
+    _ref = this.slots.children;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      child = _ref[_i];
+      child.$x = 0;
+      child.$y = total_height;
+      total_height += child.$height;
+    }
+    return this.$totalHeight = total_height;
+  }).addEventHandler("onResize", function(size) {
+    return this._relayout();
+  }).addMethod("_scrolled", function() {
+    var container, item, margin, nli, vstart, vstop, _i, _len, _ref;
+    container = this.getElement("container");
+    margin = 500;
+    vstart = this.rootElement.scrollTop - margin;
+    vstop = vstart + this.$height + 2 * margin;
+    _ref = this.slots.children;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      item = _ref[_i];
+      if (item.$y + item.$height > vstart) {
+        if (item.$y > vstop) {
+          if (item.isRendered()) {
+            item.unrender();
+          }
+        } else {
+          if (!item.isRendered()) {
+            this.appendElement(container, nli = item.render());
+            item.resize({
+              width: this.$width,
+              height: nli.$height
+            });
+          }
+        }
+      } else if (item.isRendered()) {
+        item.unrender();
+      }
+    }
+  }).addStyle("listStyle", {
+    overflowY: "scroll"
+  }).addStyle("listContainerStyle", {
+    height: function() {
+      return this.$totalHeight;
+    }
+  }).setInitializer(function() {
+    return this._relayout();
+  }).setRenderer(function() {
+    var container, div;
+    div = this.supermodule("absolute-element");
+    container = this.createElement("container", "div");
+    this.applyStyle(container, "listContainerStyle");
+    this.appendElement(container);
+    div.addEventListener("scroll", this._scrolled);
+    this.applyStyle(div, "listStyle");
+    this._relayout();
+    this._scrolled();
+    return div;
+  }).setOnResize(function(size) {
+    var slot, _i, _len, _ref;
+    this.adjustSizeBounded(size);
+    _ref = this.slots.children;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      slot = _ref[_i];
+      slot.resize({
+        width: this.$width,
+        height: slot.$height
+      });
+    }
+    return this._scrolled();
+  }).register();
+
+  new window.SUITE.ModuleBuilder("list-item").extend("absolute-element").setPropertyDefault("height", 55).addProperty("title", [SUITE.PrimitiveType.String], "", function() {
+    return this.rerender;
+  }).addProperty("subtitle", [SUITE.PrimitiveType.String], "", function() {
+    return this.rerender;
+  }).addStyle("list_item", {
+    padding: "8px 12px",
+    borderBottom: "1px solid #eee",
+    boxSizing: "border-box"
+  }).addStyle("list_component", {
+    margin: 0,
+    padding: 0,
+    position: "static"
+  }).addStyle("list_title", {
+    fontSize: 18
+  }).addStyle("list_subtitle", {
+    fontSize: 12,
+    color: "#666"
+  }).setRenderer(function() {
+    var div, subtitle, title;
+    div = this["super"]();
+    this.applyStyle(div, "list_item");
+    title = this.createElement("title", "h1");
+    title.innerHTML = this.$title;
+    this.applyStyle(title, "list_component");
+    this.applyStyle(title, "list_title");
+    this.appendElement(title);
+    if (this.$subtitle != null) {
+      subtitle = this.createElement("subtitle", "h1");
+      subtitle.innerHTML = this.$subtitle;
+      this.applyStyle(subtitle, "list_component");
+      this.applyStyle(subtitle, "list_subtitle");
+      this.appendElement(subtitle);
+    }
+    return div;
+  }).setOnResize(function(size) {
+    return this.$width = size.width;
+  }).register();
+
+}).call(this);

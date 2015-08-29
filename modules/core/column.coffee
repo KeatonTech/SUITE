@@ -4,8 +4,6 @@
 # $spacing determines how much vertical space to leave between items
 new window.SUITE.ModuleBuilder("column")
   .extend "box"
-  .removeProperty "maxWidth"
-  .removeProperty "maxHeight"
 
   .addProperty "justify", [SUITE.PrimitiveType.Number], 0.5, ()-> @_relayout()
   .addProperty "spacing", [SUITE.PrimitiveType.Number], 0, ()-> @_relayout()

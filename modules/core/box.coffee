@@ -9,12 +9,17 @@ new window.SUITE.ModuleBuilder("box")
   .addProperty "maxWidth", [SUITE.PrimitiveType.Number]
   .addProperty "maxHeight", [SUITE.PrimitiveType.Number]
 
-  .setOnResize (size)->
+  # This is separated out from onResize to make overriding easier
+  .addMethod "adjustSizeBounded", (size)->
+    size.width -= @$x
+    size.height -= @$y
     if @$maxWidth? and @$minWidth?
       @$width = parseInt Math.max(Math.min(size.width, @$maxWidth), @$minWidth)
     if @$maxHeight? and @$minHeight?
       @$height = parseInt Math.max(Math.min(size.height, @$maxHeight), @$minHeight)
 
+  .setOnResize (size)->
+    @adjustSizeBounded size
     slot.resize(@size) for slot in @slots.children
 
   .register()

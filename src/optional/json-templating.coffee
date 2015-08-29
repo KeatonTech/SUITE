@@ -1,5 +1,8 @@
 # A simple and fast way to create complex templates in Javascript
 window.SUITE.ParseTemplate = (json)->
+  _sh.time "JSON Template Construction", ()-> SUITE._parseTemplateInternal json
+
+window.SUITE._parseTemplateInternal = (json)->
   if Object.keys(json).length == 0 then return
 
   # If there are multiple top-level objects they must be wrapped in a container
@@ -9,7 +12,7 @@ window.SUITE.ParseTemplate = (json)->
     for selector, properties of json
       single_template = {}
       single_template[selector] = properties
-      new_template = SUITE.ParseTemplate single_template
+      new_template = SUITE._parseTemplateInternal single_template
       template.extend new_template
       container.addChild new_template._component
     return template
