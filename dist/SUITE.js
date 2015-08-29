@@ -186,7 +186,6 @@ window.SUITE.Slot = (function(_super) {
   return Slot;
 
 })(window.SUITE.ComponentProperty);
-window.SUITE.EventTypes = ["onMove", "onShift", "onResize", "onChange", "onRender", "onHide", "onShow", "onAdd", "onRemove"];
 window.SUITE.Module = (function() {
   function Module(name, extend_name, properties, slots) {
     if (properties == null) {

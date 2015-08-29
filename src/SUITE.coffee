@@ -29,7 +29,6 @@ window.SUITE =
 #@prepros-append ./helpers.coffee
 #@prepros-append ./types.coffee
 #@prepros-append ./property.coffee
-#@prepros-append ./events.coffee
 #@prepros-append ./module.coffee
 #@prepros-append ./animation.coffee
 #@prepros-append ./style.coffee
