@@ -27,6 +27,8 @@ new window.SUITE.ModuleBuilder("sidebar-layout")
 
     # Render the content
     @appendElement @setElement "content_div", @renderSlot(@slots.child)
+    @slots.child.$minHeight = 0
+    @slots.child.$maxHeight = 99999
     @slots.child.resize({width: @$childWidth, height: @$containerHeight})
     @slots.child.dispatchEvent "onResize"
     @$position = -@slots.child.$width

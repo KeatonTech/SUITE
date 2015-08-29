@@ -3,41 +3,6 @@
 
 }).call(this);
 (function() {
-  new window.SUITE.ModuleBuilder("stack").extend("box").removeProperty("maxWidth").removeProperty("maxHeight").addProperty("justify", [SUITE.PrimitiveType.Number], 0.5, function() {
-    return this._relayout();
-  }).addProperty("spacing", [SUITE.PrimitiveType.Number], 0, function() {
-    return this._relayout();
-  }).addMethod("_relayout", function() {
-    var child, stack_width, total_height, _i, _j, _len, _len1, _ref, _ref1;
-    stack_width = 0;
-    _ref = this.slots.children;
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      child = _ref[_i];
-      stack_width = Math.max(child.$width, stack_width);
-    }
-    this.$width = stack_width;
-    total_height = 0;
-    _ref1 = this.slots.children;
-    for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-      child = _ref1[_j];
-      child.$x = (this.$width - child.$width) * this.$justify;
-      child.$y = total_height;
-      total_height += child.$height + this.$spacing;
-    }
-    return this.$height = total_height - this.$spacing;
-  }).setRenderer(function() {
-    var div;
-    div = this["super"]();
-    this._relayout();
-    return div;
-  }).addEventHandler("onResize", function(size) {
-    return this._relayout();
-  }).addSlotEventHandler("children", "onResize", function(size) {
-    return this._relayout();
-  }).register();
-
-}).call(this);
-(function() {
   new window.SUITE.ModuleBuilder("dialog-container").extend("container").addSlot("dialog", false, function(type) {
     return type === "floating-box";
   }).addProperty("overlayColor", [SUITE.PrimitiveType.Color], "black").addProperty("overlayOpacity", [SUITE.PrimitiveType.Number], 0.6).addStyle("overlay", {
@@ -132,6 +97,8 @@
       return this.$shown = true;
     }
     this.appendElement(this.setElement("content_div", this.renderSlot(this.slots.child)));
+    this.slots.child.$minHeight = 0;
+    this.slots.child.$maxHeight = 99999;
     this.slots.child.resize({
       width: this.$childWidth,
       height: this.$containerHeight

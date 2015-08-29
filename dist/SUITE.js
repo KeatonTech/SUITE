@@ -1798,3 +1798,73 @@
   }).register();
 
 }).call(this);
+(function() {
+  new window.SUITE.ModuleBuilder("row").extend("box").removeProperty("maxWidth").removeProperty("maxHeight").addProperty("verticalAlign", [SUITE.PrimitiveType.Number], 0.5, function() {
+    return this._relayout();
+  }).addProperty("spacing", [SUITE.PrimitiveType.Number], 0, function() {
+    return this._relayout();
+  }).addMethod("_relayout", function() {
+    var child, stack_height, total_width, _i, _j, _len, _len1, _ref, _ref1;
+    stack_height = 0;
+    _ref = this.slots.children;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      child = _ref[_i];
+      stack_height = Math.max(child.$height, stack_height);
+    }
+    this.$height = stack_height;
+    total_width = 0;
+    _ref1 = this.slots.children;
+    for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+      child = _ref1[_j];
+      child.$x = total_width;
+      child.$y = (this.$height - child.$height) * this.$verticalAlign;
+      total_width += child.$width + this.$spacing;
+    }
+    return this.$width = total_width - this.$spacing;
+  }).setRenderer(function() {
+    var div;
+    div = this["super"]();
+    this._relayout();
+    return div;
+  }).addEventHandler("onResize", function(size) {
+    return this._relayout();
+  }).addSlotEventHandler("children", "onResize", function(size) {
+    return this._relayout();
+  }).register();
+
+}).call(this);
+(function() {
+  new window.SUITE.ModuleBuilder("column").extend("box").removeProperty("maxWidth").removeProperty("maxHeight").addProperty("justify", [SUITE.PrimitiveType.Number], 0.5, function() {
+    return this._relayout();
+  }).addProperty("spacing", [SUITE.PrimitiveType.Number], 0, function() {
+    return this._relayout();
+  }).addMethod("_relayout", function() {
+    var child, stack_width, total_height, _i, _j, _len, _len1, _ref, _ref1;
+    stack_width = 0;
+    _ref = this.slots.children;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      child = _ref[_i];
+      stack_width = Math.max(child.$width, stack_width);
+    }
+    this.$width = stack_width;
+    total_height = 0;
+    _ref1 = this.slots.children;
+    for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+      child = _ref1[_j];
+      child.$x = (this.$width - child.$width) * this.$justify;
+      child.$y = total_height;
+      total_height += child.$height + this.$spacing;
+    }
+    return this.$height = total_height - this.$spacing;
+  }).setRenderer(function() {
+    var div;
+    div = this["super"]();
+    this._relayout();
+    return div;
+  }).addEventHandler("onResize", function(size) {
+    return this._relayout();
+  }).addSlotEventHandler("children", "onResize", function(size) {
+    return this._relayout();
+  }).register();
+
+}).call(this);

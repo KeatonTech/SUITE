@@ -2,7 +2,7 @@
 # By default the child elements are horizontally centered, this can be changed using the
 # $justify property, where 0 is left-justify and 1 is right-justify
 # $spacing determines how much vertical space to leave between items
-new window.SUITE.ModuleBuilder("stack")
+new window.SUITE.ModuleBuilder("column")
   .extend "box"
   .removeProperty "maxWidth"
   .removeProperty "maxHeight"
