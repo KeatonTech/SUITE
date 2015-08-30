@@ -216,6 +216,9 @@ window.SUITE.Module = (function() {
     if (slot == null) {
       slot = new window.SUITE.Slot(false);
     }
+    if (name.indexOf("on") === 0) {
+      throw new Error("Slot names cannot begin with 'on', that would conflict with handlers");
+    }
     return this.slots[name] = slot;
   };
 
@@ -692,24 +695,34 @@ var __slice = [].slice;
 
 window.SUITE.ModuleAPI = (function() {
   function ModuleAPI(component) {
-    var func, name, prefixed, property, s, slot, _ref, _ref1, _ref2;
+    var func, i, lazySlotAPI, name, prefixed, property, s, sc, slot, _ref, _ref1, _ref2;
     this._ = component;
     this.slots = {};
+    lazySlotAPI = function(slot_container, name, slot) {
+      return Object.defineProperty(slot_container, name, {
+        configurable: true,
+        get: function() {
+          Object.defineProperty(this, name, {
+            get: void 0
+          });
+          Object.defineProperty(this, name, {
+            value: slot._api
+          });
+          return slot._api;
+        }
+      });
+    };
     _ref = this._.slots;
     for (name in _ref) {
       slot = _ref[name];
       if (slot instanceof Array) {
-        this.slots[name] = (function() {
-          var _i, _len, _results;
-          _results = [];
-          for (_i = 0, _len = slot.length; _i < _len; _i++) {
-            s = slot[_i];
-            _results.push(s._api);
-          }
-          return _results;
-        })();
+        sc = this.slots[name] = [];
+        for (i in slot) {
+          s = slot[i];
+          lazySlotAPI(sc, i, s);
+        }
       } else {
-        this.slots[name] = slot._api;
+        lazySlotAPI(this.slots, name, slot);
       }
     }
     _ref1 = this._._module.properties;
@@ -736,18 +749,51 @@ window.SUITE.ModuleAPI = (function() {
         return this._._rootElement;
       }
     });
-    this.resize = this._.resize.bind(this._);
-    this.render = this._.render.bind(this._);
-    this.rerender = this._.rerender.bind(this._);
-    this.unrender = this._.unrender.bind(this._);
-    this.dispatchEvent = this._._dispatchEvent.bind(this._);
-    this.hasPropertyValue = this._.hasPropertyValue.bind(this._);
-    this.fillSlot = this._.fillSlot.bind(this._);
-    this.removeSlotComponent = this._.removeSlotComponent.bind(this._);
-    this.emptySlot = this._.emptySlot.bind(this._);
-    this.allSlotComponents = this._.allSlotComponents.bind(this._);
-    this.allSubComponents = this._.allSubComponents.bind(this._);
   }
+
+  ModuleAPI.prototype.resize = function() {
+    return this._.resize.apply(this._, arguments);
+  };
+
+  ModuleAPI.prototype.render = function() {
+    return this._.render.apply(this._, arguments);
+  };
+
+  ModuleAPI.prototype.rerender = function() {
+    return this._.rerender.apply(this._, arguments);
+  };
+
+  ModuleAPI.prototype.unrender = function() {
+    return this._.unrender.apply(this._, arguments);
+  };
+
+  ModuleAPI.prototype.dispatchEvent = function() {
+    return this._._dispatchEvent.apply(this._, arguments);
+  };
+
+  ModuleAPI.prototype.hasPropertyValue = function() {
+    return this._.hasPropertyValue.apply(this._, arguments);
+  };
+
+  ModuleAPI.prototype.fillSlot = function() {
+    return this._.fillSlot.apply(this._, arguments);
+  };
+
+  ModuleAPI.prototype.removeSlotComponent = function() {
+    return this._.removeSlotComponent.apply(this._, arguments);
+  };
+
+  ModuleAPI.prototype.emptySlot = function() {
+    return this._.emptySlot.apply(this._, arguments);
+  };
+
+  ModuleAPI.prototype.allSlotComponents = function() {
+    return this._.allSlotComponents.apply(this._, arguments);
+  };
+
+  ModuleAPI.prototype.allSubComponents = function() {
+    return this._.allSubComponents.apply(this._, arguments);
+  };
 
   ModuleAPI.prototype._prepare = function(super_module, super_function_name) {
     this._prepareAttrSetter();
@@ -927,7 +973,20 @@ window.SUITE.Component = (function() {
       this.addHandler(event, func);
     }
     this._changeListeners = {};
-    this._api = new SUITE.ModuleAPI(this);
+    this._builtAPI = false;
+    Object.defineProperty(this, "_api", {
+      configurable: true,
+      get: function() {
+        this._builtAPI = true;
+        Object.defineProperty(this, "_api", {
+          get: void 0
+        });
+        Object.defineProperty(this, "_api", {
+          value: new SUITE.ModuleAPI(this)
+        });
+        return this._api;
+      }
+    });
   }
 
   Component.prototype.copy = function() {
@@ -980,29 +1039,28 @@ window.SUITE.Component = (function() {
         })(this, name),
         set: ((function(_this) {
           return function(name, p) {
-            if (p.setter != null) {
-              return function(val) {
-                var oldval;
-                oldval = _this._values[name];
-                _this._values[name] = val;
-                _this._api._prepareAttrSetter();
-                p.setter.call(_this._api, val, oldval);
-                return _this._runPropertyChangeListeners(name, val, oldval);
-              };
-            } else {
-              return function(val) {
-                var oldval;
-                oldval = _this._values[name];
-                _this._values[name] = val;
-                _this._api._prepareAttrSetter();
-                return _this._runPropertyChangeListeners(name, val, oldval);
-              };
-            }
+            return function(val) {
+              return _this._setProperty(name, p, val);
+            };
           };
         })(this))(name, p)
       }));
     }
     return _results;
+  };
+
+  Component.prototype._setProperty = function(name, property, val) {
+    var oldval;
+    oldval = this._values[name];
+    this._values[name] = val;
+    if (this._rootElement == null) {
+      return;
+    }
+    this._api._prepareAttrSetter();
+    if (property.setter != null) {
+      property.setter.call(this._api, val, oldval);
+    }
+    return this._runPropertyChangeListeners(name, val, oldval);
   };
 
   Component.prototype._runPropertyChangeListeners = function(property_name, val, oldval) {
@@ -1052,13 +1110,17 @@ window.SUITE.Component = (function() {
       }
       index = this.slots.length;
       this.slots[slotName].push(component);
-      this._api.slots[slotName].push(component._api);
+      if (this._builtAPI) {
+        this._api.slots[slotName].push(component._api);
+      }
     } else {
       if (this.slots[slotName] != null) {
         this.slots[slotName].unbindFromComponentProperty(slot_class);
       }
       this.slots[slotName] = component;
-      this._api.slots[slotName] = component._api;
+      if (this._builtAPI) {
+        this._api.slots[slotName] = component._api;
+      }
     }
     this.rerender();
     return index;
@@ -1075,7 +1137,9 @@ window.SUITE.Component = (function() {
     this.slots[slotName][index].parent = void 0;
     this.slots[slotName][index].unbindFromComponentProperty(slot_class);
     this.slots[slotName].splice(index, 1);
-    this._api.slots[slotName].splice(index, 1);
+    if (this._builtAPI) {
+      this._api.slots[slotName].splice(index, 1);
+    }
     return true;
   };
 
@@ -1096,7 +1160,9 @@ window.SUITE.Component = (function() {
       this.slots[slotName].unbindFromComponentProperty(slot_class);
     }
     delete this.slots[slotName];
-    delete this._api.slots[slotName];
+    if (this._builtAPI) {
+      delete this._api.slots[slotName];
+    }
     return this.rerender();
   };
 
@@ -1572,6 +1638,8 @@ window.SUITE._parseTemplateInternal = function(json) {
       _ref2 = _ref1[_i], name = _ref2[0], val = _ref2[1];
       if (name[0] === "$") {
         component[name] = val;
+      } else if (name.length > 1 && name[0] === "o" && name[1] === "n") {
+        components.addHandler(name, val);
       } else if (name[0] === "<") {
         if (Object.keys(component._module.slots).length !== 1) {
           throw new Error("Cannot add children on the top level: Module has multiple slots");

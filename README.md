@@ -82,6 +82,57 @@ SUITE.ParseTemplate
       $string: "SO EASY!"
 ```
 
+### Interactivity
+
+SUITE components have their own event system, unique from the HTML one that is, if not
+fundamentally broken, deeply flawed for web apps. Here is a partial list of events:
+
+**NOTE:** Not all of these are implemented yet
+
+##### Layout Events
+
+* **onMove:** The component has changed position within its parent
+* **onShift:** The component has changed position on the screen
+* **onResize:** The component has changed size
+* **onChange:** The HTML markup of the component has changed in some way
+* **onShow:** The component has appeared on the page
+* **onHide:** The component has been hidden (usually this means it's removed from the DOM)
+
+##### Interaction Events (very similar to HTML)
+
+* **onClick:** The user has clicked the component
+* **onRightClick:** The user has right clicked the component
+* **onMouseEnter:** The user has started to hover
+* **onMouseOut:** The user has finished their hover
+
+##### Property Events
+These events are related to specific properties of a component. It's worth noting that slots
+are a type of property.
+
+* **onAdd:** A component has been added to a repeated component property (or slot)
+* **onRemove:** A component has been removed from a repeated component property (or slot)
+
+Handlers can be registered on a module either programmatically:
+
+```coffeescript
+# Turns the sidebar a random color whenever it resizes
+sidebar.addHandler "onResize", (size)->
+  randomComp = ()-> parseInt Math.random()*255
+  @$fill = "rgb(#{randomComp()}, #{randomComp()}, #{randomComp()})"
+```
+
+or in the template
+
+```coffeescript
+SUITE.ParseTemplate
+  "<container>":
+    onResize: (size)-> console.log size
+```
+
+Note that handlers are always run with *this* set to the component's ModuleAPI. Some events
+like resize also have arguments passed to them.
+
+
 ### Building a new module
 The easiest way to create your own modules is to use the ModuleBuilder, based off of Java's
 famous builder pattern. It allows you to configure your module, override functions, add

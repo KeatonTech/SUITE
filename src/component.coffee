@@ -40,7 +40,16 @@ class window.SUITE.Component
 
     # Create an instance of the Module API, which allows the owner module to interact with
     # this component in an easy but safe way.
-    @_api = new SUITE.ModuleAPI this
+    @_builtAPI = false
+    Object.defineProperty this, "_api",
+      configurable: true
+      get: ()->
+        @_builtAPI = true
+        Object.defineProperty this, "_api",
+          get: undefined
+        Object.defineProperty this, "_api",
+          value: new SUITE.ModuleAPI this
+        return @_api
 
   copy: ()->
     copy = new SUITE.Component @type
@@ -68,20 +77,16 @@ class window.SUITE.Component
       @_values[name] = p.default
       Object.defineProperty this, "$#{name}",
         get: ((_this, name)->()-> return _this._values[name])(this, name)
-        set:
-          ((name, p)=>
-            if p.setter? then (val)=>
-              oldval = @_values[name]
-              @_values[name] = val
-              @_api._prepareAttrSetter()
-              p.setter.call @_api, val, oldval
-              @_runPropertyChangeListeners name, val, oldval
-            else (val)=>
-              oldval = @_values[name]
-              @_values[name] = val
-              @_api._prepareAttrSetter()
-              @_runPropertyChangeListeners name, val, oldval
-          )(name, p)
+        set: ((name, p)=> (val)=> @_setProperty(name, p, val))(name, p)
+
+  # Internal function that's called whenever a property changes
+  _setProperty: (name, property, val)->
+    oldval = @_values[name]
+    @_values[name] = val
+    if !@_rootElement? then return
+    @_api._prepareAttrSetter()
+    if property.setter? then property.setter.call @_api, val, oldval
+    @_runPropertyChangeListeners name, val, oldval
 
   # Runs property change listeners
   _runPropertyChangeListeners: (property_name, val, oldval)->
@@ -118,12 +123,12 @@ class window.SUITE.Component
       if !@slots[slotName]? then @slots[slotName] = []
       index = @slots.length
       @slots[slotName].push component
-      @_api.slots[slotName].push component._api
+      if @_builtAPI then @_api.slots[slotName].push component._api
     else
       if @slots[slotName]?
         @slots[slotName].unbindFromComponentProperty slot_class
       @slots[slotName] = component
-      @_api.slots[slotName] = component._api
+      if @_builtAPI then @_api.slots[slotName] = component._api
 
     @rerender()
     return index # 0 for non-repeated slots
@@ -135,7 +140,7 @@ class window.SUITE.Component
     @slots[slotName][index].parent = undefined
     @slots[slotName][index].unbindFromComponentProperty slot_class
     @slots[slotName].splice index, 1
-    @_api.slots[slotName].splice index, 1
+    if @_builtAPI then @_api.slots[slotName].splice index, 1
     return true
 
   # Remove all components in a slot
@@ -149,7 +154,7 @@ class window.SUITE.Component
       @slots[slotName].parent = undefined
       @slots[slotName].unbindFromComponentProperty(slot_class)
     delete @slots[slotName]
-    delete @_api.slots[slotName]
+    if @_builtAPI then delete @_api.slots[slotName]
     @rerender()
 
   # List all 'child' elements in any slot
@@ -174,7 +179,7 @@ class window.SUITE.Component
 
   # EVENT HANDLERS ==========================================================================
 
-  # Add a handler for a SUITE event (different from HTML events, see events.coffee)
+  # Add a handler for a SUITE event (different from HTML events)
   addHandler: (event, func) ->
     if !@_handlers[event]? then @_handlers[event] = []
     if func instanceof Array

@@ -29,6 +29,8 @@ class window.SUITE.Module
     @properties[name] = new window.SUITE.Property(type_or_property, default_val, setter)
 
   addSlot: (name, slot = new window.SUITE.Slot(false))->
+    if name.indexOf("on") == 0
+      throw new Error "Slot names cannot begin with 'on', that would conflict with handlers"
     @slots[name] = slot
 
   addHandler: (event, func) ->

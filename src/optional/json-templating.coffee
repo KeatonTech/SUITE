@@ -60,6 +60,10 @@ window.SUITE._parseTemplateInternal = (json)->
     for [name, val] in iterate_properties properties
       if name[0] == "$" then component[name] = val
 
+      # Handlers can be bound from here
+      else if name.length > 1 and name[0] == "o" and name[1] == "n"
+        components.addHandler name, val
+
       # When there is only one slot, components can be added on the top level
       else if name[0] == "<"
         if Object.keys(component._module.slots).length != 1

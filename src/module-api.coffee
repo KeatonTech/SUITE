@@ -5,11 +5,22 @@ class window.SUITE.ModuleAPI
     @_ = component
 
     @slots = {}
+    lazySlotAPI = (slot_container, name, slot)->
+      Object.defineProperty slot_container, name,
+        configurable: true
+        get: ()->
+          Object.defineProperty this, name,
+            get: undefined
+          Object.defineProperty this, name,
+            value: slot._api
+          return slot._api
+
     for name, slot of @_.slots
       if slot instanceof Array
-        @slots[name] = (s._api for s in slot)
+        sc = @slots[name] = []
+        lazySlotAPI(sc, i, s) for i,s of slot
       else
-        @slots[name] = slot._api
+        lazySlotAPI(@slots, name, slot)
 
     # Copy in the property objects
     for name, property of @_._module.properties
@@ -23,18 +34,18 @@ class window.SUITE.ModuleAPI
     Object.defineProperty @, "size", get: ()-> return {width: @$width, height: @$height}
     Object.defineProperty @, "rootElement", get: ()-> return @_._rootElement
 
-    # Passthrough
-    @resize = @_.resize.bind @_
-    @render = @_.render.bind @_
-    @rerender = @_.rerender.bind @_
-    @unrender = @_.unrender.bind @_
-    @dispatchEvent = @_._dispatchEvent.bind @_
-    @hasPropertyValue = @_.hasPropertyValue.bind @_
-    @fillSlot = @_.fillSlot.bind @_
-    @removeSlotComponent = @_.removeSlotComponent.bind @_
-    @emptySlot = @_.emptySlot.bind @_
-    @allSlotComponents = @_.allSlotComponents.bind @_
-    @allSubComponents = @_.allSubComponents.bind @_
+  # Passthrough
+  resize: ()-> @_.resize.apply @_, arguments
+  render: ()-> @_.render.apply @_, arguments
+  rerender: ()-> @_.rerender.apply @_, arguments
+  unrender: ()-> @_.unrender.apply @_, arguments
+  dispatchEvent: ()-> @_._dispatchEvent.apply @_, arguments
+  hasPropertyValue: ()-> @_.hasPropertyValue.apply @_, arguments
+  fillSlot: ()-> @_.fillSlot.apply @_, arguments
+  removeSlotComponent: ()-> @_.removeSlotComponent.apply @_, arguments
+  emptySlot: ()-> @_.emptySlot.apply @_, arguments
+  allSlotComponents: ()-> @_.allSlotComponents.apply @_, arguments
+  allSubComponents: ()-> @_.allSubComponents.apply @_, arguments
 
 
   # Prepares the API for use with the latest values
@@ -103,6 +114,7 @@ class window.SUITE.ModuleAPI
 
   isRendered: ()-> return @_._rootElement?
 
+  # Useful for preventing infinite loops
   setPropertyWithoutSetter: (name, val) ->
     @_._values[name] = val
 
