@@ -32,6 +32,7 @@ class window.SUITE.Component
 
     # Add handlers from the module
     @_handlers = {}
+    @_handlerBindings = {}
     for event, func of @_module.handlers
       @addHandler event, func
 
@@ -187,6 +188,18 @@ class window.SUITE.Component
     else
       @_handlers[event].push func
 
+    # Allows modules to attach handlers to specific HTML elements
+    if @_handlerBindings[event]?
+      for [element, htmlEvent] in @_handlerBindings[event]
+        element.addEventListener htmlEvent, func
+
+  # Called by ModuleAPI, adds an HTMLElement that should be tied to specific handlers
+  _addHandlerBinding: (element, htmlEvent, suiteEvent) ->
+    if @_handlers[suiteEvent]?
+      element.addEventListener(htmlEvent, h) for h in @_handlers[suiteEvent]
+    if !@_handlerBindings[suiteEvent]? then @_handlerBindings[suiteEvent] = []
+    @_handlerBindings[suiteEvent].push [element, htmlEvent]
+
   removeHandler: (event, func) ->
     if !@_handlers[event]? then @_handlers[event] = []
     @_handlers[event].filter (h)-> h != func
@@ -235,7 +248,7 @@ class window.SUITE.Component
 
     # Run the module's render function with the appropriate super function
     cleanup = @_api._prepare @_module.super, "render"
-    @_rootElement = @_module.render.call @_api, @slots
+    @_rootElement = @_module.render.call @_api
     cleanup()
 
     return @_rootElement
@@ -253,6 +266,7 @@ class window.SUITE.Component
     if @_rootElement.parentNode?
       @_rootElement.parentNode.removeChild @_rootElement
     @_rootElement = undefined
+    @_handlerBindings = {}
     for child in @allSlotComponents()
       child.unrender()
 

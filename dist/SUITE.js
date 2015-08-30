@@ -795,6 +795,10 @@ window.SUITE.ModuleAPI = (function() {
     return this._.allSubComponents.apply(this._, arguments);
   };
 
+  ModuleAPI.prototype.addHandlerBinding = function() {
+    return this._._addHandlerBinding.apply(this._, arguments);
+  };
+
   ModuleAPI.prototype._prepare = function(super_module, super_function_name) {
     this._prepareAttrSetter();
     this._setSuper(super_module, super_function_name);
@@ -967,6 +971,7 @@ window.SUITE.Component = (function() {
       })(this))(func);
     }
     this._handlers = {};
+    this._handlerBindings = {};
     _ref2 = this._module.handlers;
     for (event in _ref2) {
       func = _ref2[event];
@@ -1197,20 +1202,42 @@ window.SUITE.Component = (function() {
   };
 
   Component.prototype.addHandler = function(event, func) {
-    var f, _i, _len, _results;
+    var element, f, htmlEvent, _i, _j, _len, _len1, _ref, _ref1, _results;
     if (this._handlers[event] == null) {
       this._handlers[event] = [];
     }
     if (func instanceof Array) {
-      _results = [];
       for (_i = 0, _len = func.length; _i < _len; _i++) {
         f = func[_i];
-        _results.push(this._handlers[event].push(f));
+        this._handlers[event].push(f);
+      }
+    } else {
+      this._handlers[event].push(func);
+    }
+    if (this._handlerBindings[event] != null) {
+      _ref = this._handlerBindings[event];
+      _results = [];
+      for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
+        _ref1 = _ref[_j], element = _ref1[0], htmlEvent = _ref1[1];
+        _results.push(element.addEventListener(htmlEvent, func));
       }
       return _results;
-    } else {
-      return this._handlers[event].push(func);
     }
+  };
+
+  Component.prototype._addHandlerBinding = function(element, htmlEvent, suiteEvent) {
+    var h, _i, _len, _ref;
+    if (this._handlers[suiteEvent] != null) {
+      _ref = this._handlers[suiteEvent];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        h = _ref[_i];
+        element.addEventListener(htmlEvent, h);
+      }
+    }
+    if (this._handlerBindings[suiteEvent] == null) {
+      this._handlerBindings[suiteEvent] = [];
+    }
+    return this._handlerBindings[suiteEvent].push([element, htmlEvent]);
   };
 
   Component.prototype.removeHandler = function(event, func) {
@@ -1320,7 +1347,7 @@ window.SUITE.Component = (function() {
       cleanup();
     }
     cleanup = this._api._prepare(this._module["super"], "render");
-    this._rootElement = this._module.render.call(this._api, this.slots);
+    this._rootElement = this._module.render.call(this._api);
     cleanup();
     return this._rootElement;
   };
@@ -1346,6 +1373,7 @@ window.SUITE.Component = (function() {
       this._rootElement.parentNode.removeChild(this._rootElement);
     }
     this._rootElement = void 0;
+    this._handlerBindings = {};
     _ref = this.allSlotComponents();
     _results = [];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -1639,7 +1667,7 @@ window.SUITE._parseTemplateInternal = function(json) {
       if (name[0] === "$") {
         component[name] = val;
       } else if (name.length > 1 && name[0] === "o" && name[1] === "n") {
-        components.addHandler(name, val);
+        component.addHandler(name, val);
       } else if (name[0] === "<") {
         if (Object.keys(component._module.slots).length !== 1) {
           throw new Error("Cannot add children on the top level: Module has multiple slots");
@@ -1719,6 +1747,10 @@ new window.SUITE.ModuleBuilder("visible-element").addProperty("id", [SUITE.Primi
   this.applyStyle(div, "positioned");
   this.applyStyle(div, "sized");
   this.applyStyle(div, "styled");
+  this.addHandlerBinding(div, "click", "onClick");
+  this.addHandlerBinding(div, "contextmenu", "onRightClick");
+  this.addHandlerBinding(div, "mouseenter", "onMouseEnter");
+  this.addHandlerBinding(div, "mouseexit", "onMouseExit");
   return div;
 }).register();
 
@@ -1921,23 +1953,6 @@ new window.SUITE.ModuleBuilder("text").extend("fixed-size-element").addProperty(
   return p;
 }).addMethod("computeSize", function() {
   return new SUITE.TextMetrics(this).measure(this.$string);
-}).register();
-new window.SUITE.ModuleBuilder("button").extend("absolute-element").addProperty("onClick", [SUITE.PrimitiveType.Function], void 0, function(val, _, oldVal) {
-  if (this.rootElement == null) {
-    return;
-  }
-  if (oldVal != null) {
-    this.rootElement.removeEventListener("click", oldVal);
-  }
-  return this.rootElement.addEventListener("click", val);
-}).addStyle("button", {
-  cursor: "pointer"
-}).setRenderer(function() {
-  var div;
-  div = this["super"]();
-  this.applyStyle(div, "button");
-  div.addEventListener("click", this.$onClick);
-  return div;
 }).register();
 new window.SUITE.ModuleBuilder("row").extend("box").removeProperty("maxWidth").removeProperty("maxHeight").addProperty("verticalAlign", [SUITE.PrimitiveType.Number], 0.5, function() {
   return this._relayout();

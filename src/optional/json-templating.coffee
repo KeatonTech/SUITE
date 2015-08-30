@@ -62,7 +62,7 @@ window.SUITE._parseTemplateInternal = (json)->
 
       # Handlers can be bound from here
       else if name.length > 1 and name[0] == "o" and name[1] == "n"
-        components.addHandler name, val
+        component.addHandler name, val
 
       # When there is only one slot, components can be added on the top level
       else if name[0] == "<"

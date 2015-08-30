@@ -46,6 +46,7 @@ class window.SUITE.ModuleAPI
   emptySlot: ()-> @_.emptySlot.apply @_, arguments
   allSlotComponents: ()-> @_.allSlotComponents.apply @_, arguments
   allSubComponents: ()-> @_.allSubComponents.apply @_, arguments
+  addHandlerBinding: ()-> @_._addHandlerBinding.apply @_, arguments
 
 
   # Prepares the API for use with the latest values

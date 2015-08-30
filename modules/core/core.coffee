@@ -40,6 +40,11 @@ new window.SUITE.ModuleBuilder("visible-element")
     @applyStyle div, "sized"
     @applyStyle div, "styled"
 
+    @addHandlerBinding div, "click", "onClick"
+    @addHandlerBinding div, "contextmenu", "onRightClick"
+    @addHandlerBinding div, "mouseenter", "onMouseEnter"
+    @addHandlerBinding div, "mouseexit", "onMouseExit"
+
     return div
 
   .register()

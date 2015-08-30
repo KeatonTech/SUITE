@@ -23,11 +23,11 @@
           $right: 15,
 
           // Button that opens the sidebar
-          "<button>": {
+          "<absolute-element.button>": {
             $width: 30,
             $height: 30,
             $fill: "#444",
-            $onClick: function(){
+            onMouseEnter: function(){
               sidebar.sidebar.$shown = !sidebar.sidebar.$shown
             }
           }
@@ -44,11 +44,11 @@
             "<pinned-layout@close>": {
               $top: 15,
               $right: 15,
-              "<button>": {
+              "<absolute-element.button>": {
                 $width: 30,
                 $height: 30,
                 $fill: "#f00",
-                $onClick: function(){
+                onClick: function(){
                   sidebar.sidebar.hide()
                 }
               }
@@ -89,6 +89,9 @@
       padding: 0;
     }
     body * {position: absolute;}
+    .button {
+      cursor: pointer;
+    }
   </style>
 </head>
 <body></body>

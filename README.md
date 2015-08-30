@@ -103,7 +103,7 @@ fundamentally broken, deeply flawed for web apps. Here is a partial list of even
 * **onClick:** The user has clicked the component
 * **onRightClick:** The user has right clicked the component
 * **onMouseEnter:** The user has started to hover
-* **onMouseOut:** The user has finished their hover
+* **onMouseExit:** The user has finished their hover
 
 ##### Property Events
 These events are related to specific properties of a component. It's worth noting that slots
