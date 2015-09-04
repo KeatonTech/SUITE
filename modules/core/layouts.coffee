@@ -24,7 +24,10 @@ new window.SUITE.ModuleBuilder("layout-in-container")
     div = @super()
     if renderChild
       div.appendChild @renderSlot @slots.child
-      @slots.child.resize(@size)
+      @slots.child.resize({
+          width: @$containerWidth
+          height: @$containerHeight
+      })
       @slots.child.dispatchEvent "onResize"
     return div
 
@@ -74,6 +77,28 @@ new window.SUITE.ModuleBuilder("pinned-layout")
   .setRenderer ()->
     div = @super()
     @applyStyle div, "absolute"
+    return div
+
+  .setOnResize (size)->
+    @super(size)
+    if @$right? and @$left?
+      @$containerWidth = size.width - @$right - @$left
+    if @$top? and @$bottom?
+      @$containerHeight = size.height - @$top - @$bottom
+
+    # Assume the child wants to be resized too
+    if @$right? and @$left? or @$top? and @$bottom?
+      @slots.child.resize {width: @$containerWidth, height: @$containerHeight}
+
+  .register()
+
+# Pinned layouts are basically equivalent to absolute positioning in HTML.
+new window.SUITE.ModuleBuilder("fixed-layout")
+  .extend "pinned-layout"
+
+  .setRenderer ()->
+    div = @super()
+    div.style.position = "fixed"
     return div
 
   .register()

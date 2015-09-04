@@ -54,14 +54,14 @@ class window.SUITE.Animation
       if Math.abs(existing_time - time) <= 10
         console.log "Transitions must be at least 11ms apart to prevent CSS conflicts"
         return false
-      
+
     @times.push time
     @transitions.push transition
     return @transitions.length - 1
 
   run: ()->
     for i, time of @times
-      wait time, ((transition)->
+      wait time, ((transition)-> ()->
         transition.run()
       )(@transitions[i])
 
@@ -70,6 +70,7 @@ window.SUITE._currentTransition = undefined
 
 # Totally not thread safe but it's JS so ¯\_(ツ)_/¯
 window.SUITE.AnimateChanges = (transition, func)->
+  if typeof transition is 'number' then transition = new SUITE.Transition transition
   window.SUITE._currentTransition = transition
   func()
   window.SUITE._currentTransition.run()

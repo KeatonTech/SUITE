@@ -14,6 +14,8 @@ new window.SUITE.ModuleBuilder("visible-element")
   .addProperty "strokeWidth", [SUITE.PrimitiveType.Number]
   .addProperty "shadow", [SUITE.PrimitiveType.String]
   .addProperty "cornerRadius", [SUITE.PrimitiveType.Number]
+  .addProperty "z", [SUITE.PrimitiveType.Number]
+  .addProperty "opacity", [SUITE.PrimitiveType.Number]
 
   .addStyle "styled",
     backgroundColor: ()-> @$fill
@@ -21,6 +23,8 @@ new window.SUITE.ModuleBuilder("visible-element")
     borderWidth: ()-> @$strokeWidth
     borderRadius: ()-> @$cornerRadius
     boxShadow: ()-> @$shadow
+    zIndex: ()-> @$z
+    opacity: ()-> @$opacity
 
 
   # IMPLEMENTATION ==========================================================================
@@ -43,7 +47,7 @@ new window.SUITE.ModuleBuilder("visible-element")
     @addHandlerBinding div, "click", "onClick"
     @addHandlerBinding div, "contextmenu", "onRightClick"
     @addHandlerBinding div, "mouseenter", "onMouseEnter"
-    @addHandlerBinding div, "mouseexit", "onMouseExit"
+    @addHandlerBinding div, "mouseleave", "onMouseExit"
 
     return div
 

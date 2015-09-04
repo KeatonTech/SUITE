@@ -37,6 +37,7 @@ window.SUITE =
 #@prepros-append ./module-api.coffee
 #@prepros-append ./component.coffee
 #@prepros-append ./stage.coffee
+#@prepros-append ./globals.coffee
 #@prepros-append ./template.coffee
 
 # OPTIONAL IMPORTS ==========================================================================
@@ -52,5 +53,6 @@ window.SUITE =
 #@prepros-append ../modules/core/layouts.coffee
 #@prepros-append ../modules/core/box.coffee
 #@prepros-append ../modules/core/text.coffee
+#@prepros-append ../modules/core/image.coffee
 #@prepros-append ../modules/core/row.coffee
 #@prepros-append ../modules/core/column.coffee

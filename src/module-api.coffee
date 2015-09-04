@@ -25,7 +25,9 @@ class window.SUITE.ModuleAPI
     # Copy in the property objects
     for name, property of @_._module.properties
       prefixed = "$" + name
-      Object.defineProperty @, prefixed, Object.getOwnPropertyDescriptor @_, prefixed
+      Object.defineProperty @, prefixed,
+        get: @_getComponentProperty.bind this, prefixed
+        set: @_setComponentProperty.bind this, prefixed
 
     # Add custom methods from the module
     for name, func of @_._module.methods
@@ -118,6 +120,10 @@ class window.SUITE.ModuleAPI
   # Useful for preventing infinite loops
   setPropertyWithoutSetter: (name, val) ->
     @_._values[name] = val
+
+  # Getter and setter functions
+  _getComponentProperty: (name, val)-> @_[name]
+  _setComponentProperty: (name, val)-> @_[name] = val
 
   # STORED HTML ELEMENTS ====================================================================
 

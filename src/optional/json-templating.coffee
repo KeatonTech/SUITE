@@ -1,6 +1,7 @@
 # A simple and fast way to create complex templates in Javascript
 window.SUITE.ParseTemplate = (json)->
-  _sh.time "JSON Template Construction", ()-> SUITE._parseTemplateInternal json
+  #_sh.time "JSON Template Construction", ()-> SUITE._parseTemplateInternal json
+  SUITE._parseTemplateInternal json
 
 window.SUITE._parseTemplateInternal = (json)->
   if Object.keys(json).length == 0 then return
@@ -38,10 +39,22 @@ window.SUITE._parseTemplateInternal = (json)->
   iterate_properties = (properties)->
     tuples = []
     if properties instanceof Array
-      if properties.length % 2 is 1
-        throw new Error "Invalid properties array: Must have an even length."
-      for i in [0...properties.length/2]
-        tuples.push [properties[i*2], properties[i*2+1]]
+
+      is_template_array = true
+      for property in properties
+        if !(property instanceof SUITE.Template)
+          is_template_array = false
+          break
+
+      if is_template_array
+        for property in properties
+          tuples.push ["", property]
+      else
+        if properties.length % 2 is 1
+          throw new Error "Invalid properties array: Must have an even length."
+        for i in [0...properties.length/2]
+          tuples.push [properties[i*2], properties[i*2+1]]
+
     else if properties instanceof Object
       tuples.push([name, val]) for name, val of properties
     else throw new Error "Expected Object or Array for template properties"
@@ -58,11 +71,25 @@ window.SUITE._parseTemplateInternal = (json)->
     if top_level then template = new SUITE.Template component
 
     for [name, val] in iterate_properties properties
-      if name[0] == "$" then component[name] = val
+      if val instanceof SUITE.Template || name[0] is "<"
+        if Object.keys(component._module.slots).length != 1
+          throw new Error "Cannot add children on the top level: Module has multiple slots"
+        slot_name = Object.keys(component._module.slots)[0]
+        if val instanceof SUITE.Template
+          component.fillSlot slot_name, val
+        else
+          component.fillSlot slot_name, build_recursive(name, val, template)
+
+      else if name[0] == "$"
+        if val instanceof SUITE.Global
+          component[name] = val.value
+          val.addDependency component, name
+        else
+          component[name] = val
 
       # Handlers can be bound from here
       else if name.length > 1 and name[0] == "o" and name[1] == "n"
-        component.addHandler name, val
+        component.addHandler name, val.bind(template)
 
       # When there is only one slot, components can be added on the top level
       else if name[0] == "<"
@@ -81,7 +108,10 @@ window.SUITE._parseTemplateInternal = (json)->
           throw new Error "Slot '#{name}' can only accept 1 component, got #{comp_count}"
 
         for [slot_selector, slot_properties] in iterate_properties val
-          component.fillSlot name, build_recursive(slot_selector, slot_properties, template)
+          if slot_properties instanceof SUITE.Template
+            component.fillSlot name, slot_properties
+          else
+            component.fillSlot name, build_recursive slot_selector, slot_properties, template
 
       else
         throw new Error "No slot named '#{name}' exists on module '#{component_name}'"

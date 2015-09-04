@@ -420,7 +420,9 @@ window.SUITE.Animation = (function() {
     for (i in _ref) {
       time = _ref[i];
       _results.push(wait(time, (function(transition) {
-        return transition.run();
+        return function() {
+          return transition.run();
+        };
       })(this.transitions[i])));
     }
     return _results;
@@ -433,6 +435,9 @@ window.SUITE.Animation = (function() {
 window.SUITE._currentTransition = void 0;
 
 window.SUITE.AnimateChanges = function(transition, func) {
+  if (typeof transition === 'number') {
+    transition = new SUITE.Transition(transition);
+  }
   window.SUITE._currentTransition = transition;
   func();
   window.SUITE._currentTransition.run();
@@ -729,7 +734,10 @@ window.SUITE.ModuleAPI = (function() {
     for (name in _ref1) {
       property = _ref1[name];
       prefixed = "$" + name;
-      Object.defineProperty(this, prefixed, Object.getOwnPropertyDescriptor(this._, prefixed));
+      Object.defineProperty(this, prefixed, {
+        get: this._getComponentProperty.bind(this, prefixed),
+        set: this._setComponentProperty.bind(this, prefixed)
+      });
     }
     _ref2 = this._._module.methods;
     for (name in _ref2) {
@@ -868,6 +876,14 @@ window.SUITE.ModuleAPI = (function() {
 
   ModuleAPI.prototype.setPropertyWithoutSetter = function(name, val) {
     return this._._values[name] = val;
+  };
+
+  ModuleAPI.prototype._getComponentProperty = function(name, val) {
+    return this._[name];
+  };
+
+  ModuleAPI.prototype._setComponentProperty = function(name, val) {
+    return this._[name] = val;
   };
 
   ModuleAPI.prototype.appendElement = function(root_or_element, element) {
@@ -1037,21 +1053,15 @@ window.SUITE.Component = (function() {
       }
       this._values[name] = p["default"];
       _results.push(Object.defineProperty(this, "$" + name, {
-        get: (function(_this, name) {
-          return function() {
-            return _this._values[name];
-          };
-        })(this, name),
-        set: ((function(_this) {
-          return function(name, p) {
-            return function(val) {
-              return _this._setProperty(name, p, val);
-            };
-          };
-        })(this))(name, p)
+        get: this._getProperty.bind(this, name),
+        set: this._setProperty.bind(this, name, p)
       }));
     }
     return _results;
+  };
+
+  Component.prototype._getProperty = function(name) {
+    return this._values[name];
   };
 
   Component.prototype._setProperty = function(name, property, val) {
@@ -1092,10 +1102,10 @@ window.SUITE.Component = (function() {
     return this._module.properties[name] != null;
   };
 
-  Component.prototype.fillSlot = function(slotName, component) {
-    var index, slot_class;
+  Component.prototype._prepareComponentForSlot = function(slotName, component) {
+    var slot_class;
     if ((slot_class = this._module.slots[slotName]) == null) {
-      return -1;
+      return false;
     }
     if (component instanceof SUITE.Template) {
       component = component._component;
@@ -1104,10 +1114,22 @@ window.SUITE.Component = (function() {
       component = component._;
     }
     if (!slot_class.allowComponent(component)) {
-      return -1;
+      return false;
     }
     component.parent = this;
     component.bindToComponentProperty(this, slot_class);
+    return component;
+  };
+
+  Component.prototype.fillSlot = function(slotName, component) {
+    var index, slot_class;
+    if ((slot_class = this._module.slots[slotName]) == null) {
+      return false;
+    }
+    component = this._prepareComponentForSlot(slotName, component);
+    if (component == null) {
+      return -1;
+    }
     index = 0;
     if (slot_class.isRepeated) {
       if (this.slots[slotName] == null) {
@@ -1118,6 +1140,7 @@ window.SUITE.Component = (function() {
       if (this._builtAPI) {
         this._api.slots[slotName].push(component._api);
       }
+      this._dispatchEvent("onAdd", [slotName, component, index]);
     } else {
       if (this.slots[slotName] != null) {
         this.slots[slotName].unbindFromComponentProperty(slot_class);
@@ -1127,8 +1150,27 @@ window.SUITE.Component = (function() {
         this._api.slots[slotName] = component._api;
       }
     }
-    this.rerender();
+    this._dispatchEvent("onSlotChange", [slotName]);
     return index;
+  };
+
+  Component.prototype.insertSlotComponent = function(slotName, index) {
+    var component, slot_class;
+    if (((slot_class = this._module.slots[slotName]) == null) || !slot_class.isRepeated) {
+      return false;
+    }
+    component = this._prepareComponentForSlot(slotName, component);
+    if (component == null) {
+      return -1;
+    }
+    if (this.slots[slotName] == null) {
+      this.slots[slotName] = [];
+    }
+    this.slots[slotName].splice(index, 0, component);
+    if (this._builtAPI) {
+      this._api.slots[slotName].splice(index, 0, component._api);
+    }
+    return this._dispatchEvent("onAdd", [slotName, component, index]);
   };
 
   Component.prototype.removeSlotComponent = function(slotName, index) {
@@ -1145,6 +1187,8 @@ window.SUITE.Component = (function() {
     if (this._builtAPI) {
       this._api.slots[slotName].splice(index, 1);
     }
+    this._dispatchEvent("onRemove", [slotName, index]);
+    this._dispatchEvent("onSlotChange", [slotName]);
     return true;
   };
 
@@ -1160,6 +1204,7 @@ window.SUITE.Component = (function() {
         slot.parent = void 0;
         slot.unbindFromComponentProperty(slot_class);
       }
+      this._dispatchEvent("onRemove", [slotName, -1]);
     } else {
       this.slots[slotName].parent = void 0;
       this.slots[slotName].unbindFromComponentProperty(slot_class);
@@ -1168,7 +1213,7 @@ window.SUITE.Component = (function() {
     if (this._builtAPI) {
       delete this._api.slots[slotName];
     }
-    return this.rerender();
+    return this._dispatchEvent("onSlotChange", [slotName]);
   };
 
   Component.prototype.allSlotComponents = function() {
@@ -1316,21 +1361,27 @@ window.SUITE.Component = (function() {
     return _results;
   };
 
-  Component.prototype._dispatchEvent = function(event, args) {
-    var handler, _i, _len, _ref, _results;
-    if (this._handlers[event] == null) {
-      return;
+  Component.prototype._dispatchEvent = function(event, args, propogateDown) {
+    var child, handler, _i, _j, _len, _len1, _ref, _ref1, _results;
+    if (this._handlers[event] != null) {
+      if (!(args instanceof Array)) {
+        args = [args];
+      }
+      _ref = this._handlers[event];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        handler = _ref[_i];
+        handler.apply(this._api, args);
+      }
     }
-    if (!(args instanceof Array)) {
-      args = [args];
+    if (propogateDown) {
+      _ref1 = this.allSlotComponents();
+      _results = [];
+      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+        child = _ref1[_j];
+        _results.push(child._dispatchEvent(event, args, true));
+      }
+      return _results;
     }
-    _ref = this._handlers[event];
-    _results = [];
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      handler = _ref[_i];
-      _results.push(handler.apply(this._api, args));
-    }
-    return _results;
   };
 
   Component.prototype.render = function(first_render) {
@@ -1438,6 +1489,31 @@ window.SUITE.Stage = (function(_super) {
   return Stage;
 
 })(window.SUITE.Component);
+window.SUITE.Global = (function() {
+  function Global(value) {
+    this.value = value;
+    this.deps = [];
+  }
+
+  Global.prototype.addDependency = function(component, property) {
+    return this.deps.push([component, property]);
+  };
+
+  Global.prototype.set = function(value) {
+    var component, property, _i, _len, _ref, _ref1, _results;
+    this.value = value;
+    _ref = this.deps;
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      _ref1 = _ref[_i], component = _ref1[0], property = _ref1[1];
+      _results.push(component[property] = value);
+    }
+    return _results;
+  };
+
+  return Global;
+
+})();
 window.SUITE.Template = (function() {
   function Template(topLevelComponent) {
     this._component = topLevelComponent;
@@ -1592,9 +1668,7 @@ window.SUITE.ModuleBuilder = (function() {
 
 })();
 window.SUITE.ParseTemplate = function(json) {
-  return _sh.time("JSON Template Construction", function() {
-    return SUITE._parseTemplateInternal(json);
-  });
+  return SUITE._parseTemplateInternal(json);
 };
 
 window.SUITE._parseTemplateInternal = function(json) {
@@ -1628,14 +1702,29 @@ window.SUITE._parseTemplateInternal = function(json) {
     return [component, jsvar, id, classes];
   };
   iterate_properties = function(properties) {
-    var i, name, tuples, val, _i, _ref;
+    var i, is_template_array, name, property, tuples, val, _i, _j, _k, _len, _len1, _ref;
     tuples = [];
     if (properties instanceof Array) {
-      if (properties.length % 2 === 1) {
-        throw new Error("Invalid properties array: Must have an even length.");
+      is_template_array = true;
+      for (_i = 0, _len = properties.length; _i < _len; _i++) {
+        property = properties[_i];
+        if (!(property instanceof SUITE.Template)) {
+          is_template_array = false;
+          break;
+        }
       }
-      for (i = _i = 0, _ref = properties.length / 2; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
-        tuples.push([properties[i * 2], properties[i * 2 + 1]]);
+      if (is_template_array) {
+        for (_j = 0, _len1 = properties.length; _j < _len1; _j++) {
+          property = properties[_j];
+          tuples.push(["", property]);
+        }
+      } else {
+        if (properties.length % 2 === 1) {
+          throw new Error("Invalid properties array: Must have an even length.");
+        }
+        for (i = _k = 0, _ref = properties.length / 2; 0 <= _ref ? _k < _ref : _k > _ref; i = 0 <= _ref ? ++_k : --_k) {
+          tuples.push([properties[i * 2], properties[i * 2 + 1]]);
+        }
       }
     } else if (properties instanceof Object) {
       for (name in properties) {
@@ -1664,10 +1753,25 @@ window.SUITE._parseTemplateInternal = function(json) {
     _ref1 = iterate_properties(properties);
     for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
       _ref2 = _ref1[_i], name = _ref2[0], val = _ref2[1];
-      if (name[0] === "$") {
-        component[name] = val;
+      if (val instanceof SUITE.Template || name[0] === "<") {
+        if (Object.keys(component._module.slots).length !== 1) {
+          throw new Error("Cannot add children on the top level: Module has multiple slots");
+        }
+        slot_name = Object.keys(component._module.slots)[0];
+        if (val instanceof SUITE.Template) {
+          component.fillSlot(slot_name, val);
+        } else {
+          component.fillSlot(slot_name, build_recursive(name, val, template));
+        }
+      } else if (name[0] === "$") {
+        if (val instanceof SUITE.Global) {
+          component[name] = val.value;
+          val.addDependency(component, name);
+        } else {
+          component[name] = val;
+        }
       } else if (name.length > 1 && name[0] === "o" && name[1] === "n") {
-        component.addHandler(name, val);
+        component.addHandler(name, val.bind(template));
       } else if (name[0] === "<") {
         if (Object.keys(component._module.slots).length !== 1) {
           throw new Error("Cannot add children on the top level: Module has multiple slots");
@@ -1687,7 +1791,11 @@ window.SUITE._parseTemplateInternal = function(json) {
         _ref3 = iterate_properties(val);
         for (_j = 0, _len1 = _ref3.length; _j < _len1; _j++) {
           _ref4 = _ref3[_j], slot_selector = _ref4[0], slot_properties = _ref4[1];
-          component.fillSlot(name, build_recursive(slot_selector, slot_properties, template));
+          if (slot_properties instanceof SUITE.Template) {
+            component.fillSlot(name, slot_properties);
+          } else {
+            component.fillSlot(name, build_recursive(slot_selector, slot_properties, template));
+          }
         }
       } else {
         throw new Error("No slot named '" + name + "' exists on module '" + component_name + "'");
@@ -1713,7 +1821,7 @@ new window.SUITE.ModuleBuilder("visible-element").addProperty("id", [SUITE.Primi
   return this.setAttrs({
     "class": val
   });
-}).addProperty("fill", [SUITE.PrimitiveType.Color]).addProperty("stroke", [SUITE.PrimitiveType.Color]).addProperty("strokeWidth", [SUITE.PrimitiveType.Number]).addProperty("shadow", [SUITE.PrimitiveType.String]).addProperty("cornerRadius", [SUITE.PrimitiveType.Number]).addStyle("styled", {
+}).addProperty("fill", [SUITE.PrimitiveType.Color]).addProperty("stroke", [SUITE.PrimitiveType.Color]).addProperty("strokeWidth", [SUITE.PrimitiveType.Number]).addProperty("shadow", [SUITE.PrimitiveType.String]).addProperty("cornerRadius", [SUITE.PrimitiveType.Number]).addProperty("z", [SUITE.PrimitiveType.Number]).addProperty("opacity", [SUITE.PrimitiveType.Number]).addStyle("styled", {
   backgroundColor: function() {
     return this.$fill;
   },
@@ -1728,6 +1836,12 @@ new window.SUITE.ModuleBuilder("visible-element").addProperty("id", [SUITE.Primi
   },
   boxShadow: function() {
     return this.$shadow;
+  },
+  zIndex: function() {
+    return this.$z;
+  },
+  opacity: function() {
+    return this.$opacity;
   }
 }).setRenderer(function(tag) {
   var div;
@@ -1750,7 +1864,7 @@ new window.SUITE.ModuleBuilder("visible-element").addProperty("id", [SUITE.Primi
   this.addHandlerBinding(div, "click", "onClick");
   this.addHandlerBinding(div, "contextmenu", "onRightClick");
   this.addHandlerBinding(div, "mouseenter", "onMouseEnter");
-  this.addHandlerBinding(div, "mouseexit", "onMouseExit");
+  this.addHandlerBinding(div, "mouseleave", "onMouseExit");
   return div;
 }).register();
 
@@ -1851,7 +1965,10 @@ new window.SUITE.ModuleBuilder("layout-in-container").extend("visible-element").
   div = this["super"]();
   if (renderChild) {
     div.appendChild(this.renderSlot(this.slots.child));
-    this.slots.child.resize(this.size);
+    this.slots.child.resize({
+      width: this.$containerWidth,
+      height: this.$containerHeight
+    });
     this.slots.child.dispatchEvent("onResize");
   }
   return div;
@@ -1894,6 +2011,27 @@ new window.SUITE.ModuleBuilder("pinned-layout").extend("layout-in-container").ad
   var div;
   div = this["super"]();
   this.applyStyle(div, "absolute");
+  return div;
+}).setOnResize(function(size) {
+  this["super"](size);
+  if ((this.$right != null) && (this.$left != null)) {
+    this.$containerWidth = size.width - this.$right - this.$left;
+  }
+  if ((this.$top != null) && (this.$bottom != null)) {
+    this.$containerHeight = size.height - this.$top - this.$bottom;
+  }
+  if ((this.$right != null) && (this.$left != null) || (this.$top != null) && (this.$bottom != null)) {
+    return this.slots.child.resize({
+      width: this.$containerWidth,
+      height: this.$containerHeight
+    });
+  }
+}).register();
+
+new window.SUITE.ModuleBuilder("fixed-layout").extend("pinned-layout").setRenderer(function() {
+  var div;
+  div = this["super"]();
+  div.style.position = "fixed";
   return div;
 }).register();
 new window.SUITE.ModuleBuilder("box").extend("container").addProperty("minWidth", [SUITE.PrimitiveType.Number]).addProperty("minHeight", [SUITE.PrimitiveType.Number]).addProperty("maxWidth", [SUITE.PrimitiveType.Number]).addProperty("maxHeight", [SUITE.PrimitiveType.Number]).addMethod("adjustSizeBounded", function(size) {
@@ -1953,6 +2091,33 @@ new window.SUITE.ModuleBuilder("text").extend("fixed-size-element").addProperty(
   return p;
 }).addMethod("computeSize", function() {
   return new SUITE.TextMetrics(this).measure(this.$string);
+}).register();
+new window.SUITE.ModuleBuilder("image").extend("absolute-element").addProperty("url", [SUITE.PrimitiveType.String], "", function(val) {
+  var image;
+  if (image = this.getElement("image")) {
+    return image.setAttribute("src", this.getSrc());
+  }
+}).addProperty("has2x", [SUITE.PrimitiveType.Boolean], true).addProperty("hasSVG", [SUITE.PrimitiveType.Boolean], false).addMethod("getSrc", function() {
+  var svg_support;
+  svg_support = this.$hasSVG && document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#Image", "1.1");
+  if (window.devicePixelRatio > 2 && svg_support) {
+    return this.$url.replace(/\.([^\.]*)$/, '.svg');
+  } else if (this.$has2x && window.devicePixelRatio > 1) {
+    return this.$url.replace(/\.([^\.]*)$/, '@2x.$1');
+  } else {
+    return this.$url;
+  }
+}).addStyle("imageStyle", {
+  height: "100%",
+  margin: "0 auto"
+}).setRenderer(function() {
+  var div, image;
+  div = this["super"]();
+  image = this.createElement("image", "img");
+  image.setAttribute("src", this.getSrc());
+  this.applyStyle(image, "imageStyle");
+  this.appendElement(div, image);
+  return div;
 }).register();
 new window.SUITE.ModuleBuilder("row").extend("box").removeProperty("maxWidth").removeProperty("maxHeight").addProperty("verticalAlign", [SUITE.PrimitiveType.Number], 0.5, function() {
   return this._relayout();

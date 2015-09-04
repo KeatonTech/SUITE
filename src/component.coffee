@@ -77,8 +77,11 @@ class window.SUITE.Component
       if !name? then continue
       @_values[name] = p.default
       Object.defineProperty this, "$#{name}",
-        get: ((_this, name)->()-> return _this._values[name])(this, name)
-        set: ((name, p)=> (val)=> @_setProperty(name, p, val))(name, p)
+        get: @_getProperty.bind this, name
+        set: @_setProperty.bind this, name, p
+
+  # Internal function that retrieves a property value in a ridiculously simple way
+  _getProperty: (name)-> return @_values[name]
 
   # Internal function that's called whenever a property changes
   _setProperty: (name, property, val)->
@@ -107,17 +110,23 @@ class window.SUITE.Component
 
   # SLOTS ===================================================================================
 
-  # Fills a slot with another component
-  fillSlot: (slotName, component)->
-    if !(slot_class = @_module.slots[slotName])? then return -1
+  _prepareComponentForSlot: (slotName, component)->
+    if !(slot_class = @_module.slots[slotName])? then return false
 
     # Allow for some flexibility
     if component instanceof SUITE.Template then component = component._component
     if component instanceof SUITE.ModuleAPI then component = component._
 
-    if !slot_class.allowComponent(component) then return -1
+    if !slot_class.allowComponent(component) then return false
     component.parent = this
     component.bindToComponentProperty this, slot_class
+    return component
+
+  # Fills a slot with another component
+  fillSlot: (slotName, component)->
+    if !(slot_class = @_module.slots[slotName])? then return false
+    component = @_prepareComponentForSlot slotName, component
+    if !component? then return -1
 
     index = 0
     if slot_class.isRepeated
@@ -125,14 +134,27 @@ class window.SUITE.Component
       index = @slots.length
       @slots[slotName].push component
       if @_builtAPI then @_api.slots[slotName].push component._api
+      @_dispatchEvent "onAdd", [slotName, component, index]
     else
       if @slots[slotName]?
         @slots[slotName].unbindFromComponentProperty slot_class
       @slots[slotName] = component
       if @_builtAPI then @_api.slots[slotName] = component._api
 
-    @rerender()
+    @_dispatchEvent "onSlotChange", [slotName]
     return index # 0 for non-repeated slots
+
+  # Add to a repeated slot at a specific index
+  insertSlotComponent: (slotName, index)->
+    if !(slot_class = @_module.slots[slotName])? or !slot_class.isRepeated then return false
+
+    component = @_prepareComponentForSlot slotName, component
+    if !component? then return -1
+
+    if !@slots[slotName]? then @slots[slotName] = []
+    @slots[slotName].splice index, 0, component
+    if @_builtAPI then @_api.slots[slotName].splice index, 0, component._api
+    @_dispatchEvent "onAdd", [slotName, component, index]
 
   # Remove a specific component in a repeated slot
   removeSlotComponent: (slotName, index)->
@@ -142,6 +164,8 @@ class window.SUITE.Component
     @slots[slotName][index].unbindFromComponentProperty slot_class
     @slots[slotName].splice index, 1
     if @_builtAPI then @_api.slots[slotName].splice index, 1
+    @_dispatchEvent "onRemove", [slotName, index]
+    @_dispatchEvent "onSlotChange", [slotName]
     return true
 
   # Remove all components in a slot
@@ -151,12 +175,13 @@ class window.SUITE.Component
       for slot in @slots[slotName]
         slot.parent = undefined
         slot.unbindFromComponentProperty(slot_class)
+      @_dispatchEvent "onRemove", [slotName, -1]
     else
       @slots[slotName].parent = undefined
       @slots[slotName].unbindFromComponentProperty(slot_class)
     delete @slots[slotName]
     if @_builtAPI then delete @_api.slots[slotName]
-    @rerender()
+    @_dispatchEvent "onSlotChange", [slotName]
 
   # List all 'child' elements in any slot
   allSlotComponents: ()->
@@ -229,10 +254,14 @@ class window.SUITE.Component
         @removeHandler type, handler_s
 
   # Dispatch an event by calling all registered handlers
-  _dispatchEvent: (event, args)->
-    if !@_handlers[event]? then return
-    if !(args instanceof Array) then args = [args]
-    handler.apply(@_api,args) for handler in @_handlers[event]
+  _dispatchEvent: (event, args, propogateDown)->
+    if @_handlers[event]?
+      if !(args instanceof Array) then args = [args]
+      handler.apply(@_api,args) for handler in @_handlers[event]
+
+    if propogateDown
+      for child in @allSlotComponents()
+        child._dispatchEvent event, args, true
 
 
   # HTML GENERATION =========================================================================

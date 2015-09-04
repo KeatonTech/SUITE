@@ -111,6 +111,7 @@ are a type of property.
 
 * **onAdd:** A component has been added to a repeated component property (or slot)
 * **onRemove:** A component has been removed from a repeated component property (or slot)
+* **onSlotChange:** The value of a slot (repeated or non-repeated) has changed
 
 Handlers can be registered on a module either programmatically:
 
