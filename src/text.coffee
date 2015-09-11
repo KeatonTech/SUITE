@@ -11,11 +11,13 @@ class window.SUITE.TextMetrics
           "'" + cfg.$fontFamily + "'"
 
       @fontSize = cfg.$fontSize
+      @fontWeight = cfg.$fontWeight
       @letterSpacing = cfg.$letterSpacing
 
     else
       @font = "sans-serif"
       @fontSize = 18
+      @fontWeight = "normal"
       @letterSpacing = 0
 
   createCanvas: ()->
@@ -25,7 +27,7 @@ class window.SUITE.TextMetrics
     return c
 
   measure: (string)->
-    @ctx.font = @fontSize + "px " + @font
+    @ctx.font = (if @fontWeight? then "#{@fontWeight} ") + @fontSize + "px " + @font
     width = @ctx.measureText(string).width
     width += (string.length - 1) * @letterSpacing
     return {width: width, height: @fontSize}

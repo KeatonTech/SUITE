@@ -52,6 +52,7 @@ window.SUITE =
 #@prepros-append ../modules/core/html.coffee
 #@prepros-append ../modules/core/layouts.coffee
 #@prepros-append ../modules/core/box.coffee
+#@prepros-append ../modules/core/expander.coffee
 #@prepros-append ../modules/core/text.coffee
 #@prepros-append ../modules/core/image.coffee
 #@prepros-append ../modules/core/row.coffee

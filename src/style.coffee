@@ -106,7 +106,7 @@ class window.SUITE.DynamicStyleAttribute
 
     # Figure out all of the object properties retrieved by the function
     func_body = func.toString()
-    extract_properties = /\$([A-Za-z0-9\-\_]+)/g
+    extract_properties = /\$([A-Za-z0-9\_]+)/g
     while match = extract_properties.exec(func_body)
       @dependencies[match[1]] = true
 

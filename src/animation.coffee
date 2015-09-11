@@ -70,8 +70,24 @@ window.SUITE._currentTransition = undefined
 
 # Totally not thread safe but it's JS so ¯\_(ツ)_/¯
 window.SUITE.AnimateChanges = (transition, func)->
+  if window.SUITE._animationState.blocked
+    return window.SUITE._animationState.queue.push [transition, func]
+
+  window.SUITE._animationState.blocked = true
   if typeof transition is 'number' then transition = new SUITE.Transition transition
   window.SUITE._currentTransition = transition
   func()
   window.SUITE._currentTransition.run()
   window.SUITE._currentTransition = undefined
+
+  wait window.SUITE._animationState.freq, ()->
+    window.SUITE._animationState.blocked = false
+    if window.SUITE._animationState.queue.length > 0
+      [transition, func] = window.SUITE._animationState.queue.shift()
+      window.SUITE.AnimateChanges transition, func
+
+# Makes sure CSS changes can propogate between animations
+window.SUITE._animationState =
+  freq: 20
+  blocked: false
+  queue: []

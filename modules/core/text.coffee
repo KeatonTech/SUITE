@@ -8,16 +8,17 @@ new window.SUITE.ModuleBuilder("text")
     @updateSize()
 
   .addProperty "color", [SUITE.PrimitiveType.Color]
-  .addProperty "fontFamily", [SUITE.PrimitiveType.String,SUITE.PrimitiveType.List],
-    ["Helvetica","Arial","sans-serif"],
+  .addProperty "fontFamily", [SUITE.PrimitiveType.String,SUITE.PrimitiveType.List], null,
     ()-> @updateSize()
+  .addProperty "fontWeight", [SUITE.PrimitiveType.String], null, ()-> @updateSize()
   .addProperty "fontSize", [SUITE.PrimitiveType.Number], 12, ()-> @updateSize()
   .addProperty "letterSpacing", [SUITE.PrimitiveType.Number], 0, ()-> @updateSize()
 
   .addStyle "text",
     color: ()-> @$color
     fontSize: ()-> @$fontSize
-    fontFamily: ()-> "'#{@$fontFamily.join("', '")}'"
+    fontFamily: ()-> if @$fontFamily? then "'#{@$fontFamily.join("', '")}'"
+    fontWeight: ()-> @$fontWeight
     letterSpacing: ()-> @$letterSpacing
     lineHeight: ()-> @$height + "px"
 

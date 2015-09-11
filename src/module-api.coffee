@@ -3,31 +3,13 @@
 class window.SUITE.ModuleAPI
   constructor: (component) ->
     @_ = component
-
-    @slots = {}
-    lazySlotAPI = (slot_container, name, slot)->
-      Object.defineProperty slot_container, name,
-        configurable: true
-        get: ()->
-          Object.defineProperty this, name,
-            get: undefined
-          Object.defineProperty this, name,
-            value: slot._api
-          return slot._api
-
-    for name, slot of @_.slots
-      if slot instanceof Array
-        sc = @slots[name] = []
-        lazySlotAPI(sc, i, s) for i,s of slot
-      else
-        lazySlotAPI(@slots, name, slot)
+    @_bindSlots()
 
     # Copy in the property objects
-    for name, property of @_._module.properties
-      prefixed = "$" + name
-      Object.defineProperty @, prefixed,
-        get: @_getComponentProperty.bind this, prefixed
-        set: @_setComponentProperty.bind this, prefixed
+    for name in Object.getOwnPropertyNames(@_) when name[0] is "$"
+      Object.defineProperty @, name,
+        get: @_getComponentProperty.bind this, name
+        set: @_setComponentProperty.bind this, name
 
     # Add custom methods from the module
     for name, func of @_._module.methods
@@ -159,6 +141,52 @@ class window.SUITE.ModuleAPI
   renderSlot: (slot_or_name, slot)->
     if slot? then @_._elements[slot_or_name] = slot.render()
     else slot_or_name.render()
+
+  _lazySlotAPI: (slot_container, name, slot)->
+    Object.defineProperty slot_container, name,
+      configurable: true
+      get: ()->
+        Object.defineProperty this, name,
+          get: undefined
+        Object.defineProperty this, name,
+          value: slot._api
+        return slot._api
+
+  # Sometimes the slots themselves haven't been resolved on the parent yet
+  _lazySlot: (name)->
+    Object.defineProperty @slots, name,
+      configurable: true
+      get: ()=>
+        Object.defineProperty @slots, name,
+          get: undefined
+        Object.defineProperty @slots, name,
+          value: undefined
+          writable: true
+
+        slot = @_.slots[name]
+        if slot instanceof Array
+          sc = @slots[name] = []
+          @_lazySlotAPI(sc, i, s) for i,s of slot
+        else
+          @_lazySlotAPI(@slots, name, slot)
+
+        return @slots[name]
+
+  _bindSlots: ()->
+    # Lazy loading prevents slot APIs from being created until they're required
+    @slots = {}
+
+    for name in Object.getOwnPropertyNames(@_.slots)
+      if Object.getOwnPropertyDescriptor(@_.slots, name).get?
+        @_lazySlot(name)
+      else
+        slot = @_.slots[name]
+        if slot instanceof Array
+          sc = @slots[name] = []
+          @_lazySlotAPI(sc, i, s) for i,s of slot
+        else
+          @_lazySlotAPI(@slots, name, slot)
+
 
   # COMPONENTS ==============================================================================
 

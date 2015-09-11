@@ -71,6 +71,8 @@ window.SUITE._parseTemplateInternal = (json)->
     if top_level then template = new SUITE.Template component
 
     for [name, val] in iterate_properties properties
+
+      # Components
       if val instanceof SUITE.Template || name[0] is "<"
         if Object.keys(component._module.slots).length != 1
           throw new Error "Cannot add children on the top level: Module has multiple slots"
@@ -80,17 +82,6 @@ window.SUITE._parseTemplateInternal = (json)->
         else
           component.fillSlot slot_name, build_recursive(name, val, template)
 
-      else if name[0] == "$"
-        if val instanceof SUITE.Global
-          component[name] = val.value
-          val.addDependency component, name
-        else
-          component[name] = val
-
-      # Handlers can be bound from here
-      else if name.length > 1 and name[0] == "o" and name[1] == "n"
-        component.addHandler name, val.bind(template)
-
       # When there is only one slot, components can be added on the top level
       else if name[0] == "<"
         if Object.keys(component._module.slots).length != 1
@@ -98,8 +89,29 @@ window.SUITE._parseTemplateInternal = (json)->
         slot_name = Object.keys(component._module.slots)[0]
         component.fillSlot slot_name, build_recursive(name, val, template)
 
+      # Properties
+      else if name[0] == "$"
+        if val instanceof SUITE.Global
+          component[name] = val.value
+          val.addDependency component, name
+        else
+          component[name] = val
+
+      # Handlers
+      else if name.length > 1 and name[0] == "o" and name[1] == "n"
+        component.addHandler name, val.bind(template)
+
+      # Template meta-programming
+      else if name[0] == "@"
+        switch name
+          when "@if"
+            if !val then return undefined
+
       # If there are multiple slots, they must be named
       else if component._module.slots[name]?
+        if val instanceof Function
+          component.deferSlot name, val
+          continue
         if !(val instanceof Object) and !(val instanceof Array)
           throw new Error "Expected component(s) on slot '#{name}', got #{typeof val}"
         if comp_count = Object.keys(val).length == 0

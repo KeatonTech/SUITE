@@ -20,12 +20,13 @@ new window.SUITE.ModuleBuilder("column")
     # Position each child in the stack
     total_height = 0
     for child in @slots.children
+      spacing = if child.$columnSpacing? then child.$columnSpacing else @$spacing
       child.$x = (@$width - child.$width) * @$justify
-      child.$y = total_height
-      total_height += child.$height + @$spacing
+      child.$y = total_height - (@$spacing - spacing)
+      total_height += child.$height + spacing
 
     # Make this stack the correct height
-    @$height = total_height - @$spacing
+    @$height = total_height - spacing
 
   # Lay out the children
   .setRenderer ()->

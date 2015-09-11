@@ -435,13 +435,31 @@ window.SUITE.Animation = (function() {
 window.SUITE._currentTransition = void 0;
 
 window.SUITE.AnimateChanges = function(transition, func) {
+  if (window.SUITE._animationState.blocked) {
+    return window.SUITE._animationState.queue.push([transition, func]);
+  }
+  window.SUITE._animationState.blocked = true;
   if (typeof transition === 'number') {
     transition = new SUITE.Transition(transition);
   }
   window.SUITE._currentTransition = transition;
   func();
   window.SUITE._currentTransition.run();
-  return window.SUITE._currentTransition = void 0;
+  window.SUITE._currentTransition = void 0;
+  return wait(window.SUITE._animationState.freq, function() {
+    var _ref;
+    window.SUITE._animationState.blocked = false;
+    if (window.SUITE._animationState.queue.length > 0) {
+      _ref = window.SUITE._animationState.queue.shift(), transition = _ref[0], func = _ref[1];
+      return window.SUITE.AnimateChanges(transition, func);
+    }
+  });
+};
+
+window.SUITE._animationState = {
+  freq: 20,
+  blocked: false,
+  queue: []
 };
 var __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
   __hasProp = {}.hasOwnProperty,
@@ -577,7 +595,7 @@ window.SUITE.DynamicStyleAttribute = (function() {
     this._eval = func;
     this.dependencies = {};
     func_body = func.toString();
-    extract_properties = /\$([A-Za-z0-9\-\_]+)/g;
+    extract_properties = /\$([A-Za-z0-9\_]+)/g;
     while (match = extract_properties.exec(func_body)) {
       this.dependencies[match[1]] = true;
     }
@@ -666,10 +684,12 @@ window.SUITE.TextMetrics = (function() {
     if (cfg instanceof SUITE.Component || cfg instanceof SUITE.ModuleAPI) {
       this.font = cfg.$fontFamily instanceof Array ? "'" + cfg.$fontFamily.join("', '") + "'" : "'" + cfg.$fontFamily + "'";
       this.fontSize = cfg.$fontSize;
+      this.fontWeight = cfg.$fontWeight;
       this.letterSpacing = cfg.$letterSpacing;
     } else {
       this.font = "sans-serif";
       this.fontSize = 18;
+      this.fontWeight = "normal";
       this.letterSpacing = 0;
     }
   }
@@ -684,7 +704,7 @@ window.SUITE.TextMetrics = (function() {
 
   TextMetrics.prototype.measure = function(string) {
     var width;
-    this.ctx.font = this.fontSize + "px " + this.font;
+    this.ctx.font = (this.fontWeight != null ? "" + this.fontWeight + " " : void 0) + this.fontSize + "px " + this.font;
     width = this.ctx.measureText(string).width;
     width += (string.length - 1) * this.letterSpacing;
     return {
@@ -700,48 +720,22 @@ var __slice = [].slice;
 
 window.SUITE.ModuleAPI = (function() {
   function ModuleAPI(component) {
-    var func, i, lazySlotAPI, name, prefixed, property, s, sc, slot, _ref, _ref1, _ref2;
+    var func, name, _i, _len, _ref, _ref1;
     this._ = component;
-    this.slots = {};
-    lazySlotAPI = function(slot_container, name, slot) {
-      return Object.defineProperty(slot_container, name, {
-        configurable: true,
-        get: function() {
-          Object.defineProperty(this, name, {
-            get: void 0
-          });
-          Object.defineProperty(this, name, {
-            value: slot._api
-          });
-          return slot._api;
-        }
-      });
-    };
-    _ref = this._.slots;
-    for (name in _ref) {
-      slot = _ref[name];
-      if (slot instanceof Array) {
-        sc = this.slots[name] = [];
-        for (i in slot) {
-          s = slot[i];
-          lazySlotAPI(sc, i, s);
-        }
-      } else {
-        lazySlotAPI(this.slots, name, slot);
+    this._bindSlots();
+    _ref = Object.getOwnPropertyNames(this._);
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      name = _ref[_i];
+      if (name[0] === "$") {
+        Object.defineProperty(this, name, {
+          get: this._getComponentProperty.bind(this, name),
+          set: this._setComponentProperty.bind(this, name)
+        });
       }
     }
-    _ref1 = this._._module.properties;
+    _ref1 = this._._module.methods;
     for (name in _ref1) {
-      property = _ref1[name];
-      prefixed = "$" + name;
-      Object.defineProperty(this, prefixed, {
-        get: this._getComponentProperty.bind(this, prefixed),
-        set: this._setComponentProperty.bind(this, prefixed)
-      });
-    }
-    _ref2 = this._._module.methods;
-    for (name in _ref2) {
-      func = _ref2[name];
+      func = _ref1[name];
       this[name] = this._[name];
     }
     Object.defineProperty(this, "size", {
@@ -943,6 +937,80 @@ window.SUITE.ModuleAPI = (function() {
     }
   };
 
+  ModuleAPI.prototype._lazySlotAPI = function(slot_container, name, slot) {
+    return Object.defineProperty(slot_container, name, {
+      configurable: true,
+      get: function() {
+        Object.defineProperty(this, name, {
+          get: void 0
+        });
+        Object.defineProperty(this, name, {
+          value: slot._api
+        });
+        return slot._api;
+      }
+    });
+  };
+
+  ModuleAPI.prototype._lazySlot = function(name) {
+    return Object.defineProperty(this.slots, name, {
+      configurable: true,
+      get: (function(_this) {
+        return function() {
+          var i, s, sc, slot;
+          Object.defineProperty(_this.slots, name, {
+            get: void 0
+          });
+          Object.defineProperty(_this.slots, name, {
+            value: void 0,
+            writable: true
+          });
+          slot = _this._.slots[name];
+          if (slot instanceof Array) {
+            sc = _this.slots[name] = [];
+            for (i in slot) {
+              s = slot[i];
+              _this._lazySlotAPI(sc, i, s);
+            }
+          } else {
+            _this._lazySlotAPI(_this.slots, name, slot);
+          }
+          return _this.slots[name];
+        };
+      })(this)
+    });
+  };
+
+  ModuleAPI.prototype._bindSlots = function() {
+    var i, name, s, sc, slot, _i, _len, _ref, _results;
+    this.slots = {};
+    _ref = Object.getOwnPropertyNames(this._.slots);
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      name = _ref[_i];
+      if (Object.getOwnPropertyDescriptor(this._.slots, name).get != null) {
+        _results.push(this._lazySlot(name));
+      } else {
+        slot = this._.slots[name];
+        if (slot instanceof Array) {
+          sc = this.slots[name] = [];
+          _results.push((function() {
+            var _results1;
+            _results1 = [];
+            for (i in slot) {
+              s = slot[i];
+              _results1.push(this._lazySlotAPI(sc, i, s));
+            }
+            return _results1;
+          }).call(this));
+        } else {
+          _results.push(this._lazySlotAPI(this.slots, name, slot));
+        }
+      }
+    }
+    return _results;
+  };
+
   ModuleAPI.prototype.createComponent = function(type_name) {
     return new SUITE.Component(type_name);
   };
@@ -1121,6 +1189,41 @@ window.SUITE.Component = (function() {
     return component;
   };
 
+  Component.prototype.deferSlot = function(slotName, func) {
+    var slot_class;
+    if ((slot_class = this._module.slots[slotName]) == null) {
+      return false;
+    }
+    this.emptySlot(slotName);
+    delete this.slots[slotName];
+    return Object.defineProperty(this.slots, slotName, {
+      configurable: true,
+      get: (function(_this) {
+        return function() {
+          var c, components, _i, _len;
+          Object.defineProperty(_this.slots, slotName, {
+            get: void 0,
+            configurable: true
+          });
+          Object.defineProperty(_this.slots, slotName, {
+            value: slot_class.isRepeated ? [] : void 0,
+            writable: true
+          });
+          components = func();
+          if (components instanceof Array) {
+            for (_i = 0, _len = components.length; _i < _len; _i++) {
+              c = components[_i];
+              _this.fillSlot(slotName, c);
+            }
+          } else {
+            _this.fillSlot(slotName, components);
+          }
+          return _this.slots[slotName];
+        };
+      })(this)
+    });
+  };
+
   Component.prototype.fillSlot = function(slotName, component) {
     var index, slot_class;
     if ((slot_class = this._module.slots[slotName]) == null) {
@@ -1203,15 +1306,23 @@ window.SUITE.Component = (function() {
         slot = _ref[_i];
         slot.parent = void 0;
         slot.unbindFromComponentProperty(slot_class);
+        slot.unrender();
       }
       this._dispatchEvent("onRemove", [slotName, -1]);
+      this.slots[slotName] = [];
+      if (this._builtAPI) {
+        this._api.slots[slotName] = [];
+      }
     } else {
+      if (this.slots[slotName] == null) {
+        return;
+      }
       this.slots[slotName].parent = void 0;
       this.slots[slotName].unbindFromComponentProperty(slot_class);
-    }
-    delete this.slots[slotName];
-    if (this._builtAPI) {
-      delete this._api.slots[slotName];
+      delete this.slots[slotName];
+      if (this._builtAPI) {
+        delete this._api.slots[slotName];
+      }
     }
     return this._dispatchEvent("onSlotChange", [slotName]);
   };
@@ -1763,6 +1874,12 @@ window.SUITE._parseTemplateInternal = function(json) {
         } else {
           component.fillSlot(slot_name, build_recursive(name, val, template));
         }
+      } else if (name[0] === "<") {
+        if (Object.keys(component._module.slots).length !== 1) {
+          throw new Error("Cannot add children on the top level: Module has multiple slots");
+        }
+        slot_name = Object.keys(component._module.slots)[0];
+        component.fillSlot(slot_name, build_recursive(name, val, template));
       } else if (name[0] === "$") {
         if (val instanceof SUITE.Global) {
           component[name] = val.value;
@@ -1772,13 +1889,18 @@ window.SUITE._parseTemplateInternal = function(json) {
         }
       } else if (name.length > 1 && name[0] === "o" && name[1] === "n") {
         component.addHandler(name, val.bind(template));
-      } else if (name[0] === "<") {
-        if (Object.keys(component._module.slots).length !== 1) {
-          throw new Error("Cannot add children on the top level: Module has multiple slots");
+      } else if (name[0] === "@") {
+        switch (name) {
+          case "@if":
+            if (!val) {
+              return void 0;
+            }
         }
-        slot_name = Object.keys(component._module.slots)[0];
-        component.fillSlot(slot_name, build_recursive(name, val, template));
       } else if (component._module.slots[name] != null) {
+        if (val instanceof Function) {
+          component.deferSlot(name, val);
+          continue;
+        }
         if (!(val instanceof Object) && !(val instanceof Array)) {
           throw new Error("Expected component(s) on slot '" + name + "', got " + (typeof val));
         }
@@ -1821,7 +1943,7 @@ new window.SUITE.ModuleBuilder("visible-element").addProperty("id", [SUITE.Primi
   return this.setAttrs({
     "class": val
   });
-}).addProperty("fill", [SUITE.PrimitiveType.Color]).addProperty("stroke", [SUITE.PrimitiveType.Color]).addProperty("strokeWidth", [SUITE.PrimitiveType.Number]).addProperty("shadow", [SUITE.PrimitiveType.String]).addProperty("cornerRadius", [SUITE.PrimitiveType.Number]).addProperty("z", [SUITE.PrimitiveType.Number]).addProperty("opacity", [SUITE.PrimitiveType.Number]).addStyle("styled", {
+}).addProperty("fill", [SUITE.PrimitiveType.Color]).addProperty("stroke", [SUITE.PrimitiveType.Color]).addProperty("strokeWidth", [SUITE.PrimitiveType.Number]).addProperty("shadow", [SUITE.PrimitiveType.String]).addProperty("cornerRadius", [SUITE.PrimitiveType.Number]).addProperty("z", [SUITE.PrimitiveType.Number]).addProperty("opacity", [SUITE.PrimitiveType.Number]).addProperty("cursor", [SUITE.PrimitiveType.String]).addStyle("styled", {
   backgroundColor: function() {
     return this.$fill;
   },
@@ -1842,6 +1964,9 @@ new window.SUITE.ModuleBuilder("visible-element").addProperty("id", [SUITE.Primi
   },
   opacity: function() {
     return this.$opacity;
+  },
+  cursor: function() {
+    return this.$cursor;
   }
 }).setRenderer(function(tag) {
   var div;
@@ -1914,6 +2039,9 @@ new window.SUITE.ModuleBuilder("fixed-size-element").extend("absolute-element").
 }).register();
 new window.SUITE.ModuleBuilder("container").extend("absolute-element").addSlot("children", true).addMethod("addChild", function(child) {
   return this.fillSlot("children", child);
+}).addMethod("clearChildren", function() {
+  this.emptySlot("children");
+  return this.unrender();
 }).setRenderer(function() {
   var div, slot, _i, _len, _ref;
   div = this["super"]();
@@ -2054,13 +2182,83 @@ new window.SUITE.ModuleBuilder("box").extend("container").addProperty("minWidth"
   }
   return _results;
 }).register();
+new window.SUITE.ModuleBuilder("expander").extend("box").addProperty("closedWidth", [SUITE.PrimitiveType.Number], 0, function(val) {
+  if (val > 0 && this.$closedHeight > 0) {
+    return this.$closedWidth = 0;
+  }
+}).addProperty("closedHeight", [SUITE.PrimitiveType.Number], 0, function(val) {
+  if (val > 0 && this.$closedWidth > 0) {
+    return this.$closedHeight = 0;
+  }
+}).addProperty("duration", [SUITE.PrimitiveType.Number], 200).addProperty("expanded", [SUITE.PrimitiveType.Boolean], false, function(val, old) {
+  if (val === old) {
+    return;
+  }
+  if (val) {
+    return this.open();
+  } else {
+    return this.close();
+  }
+}).addMethod("open", function() {
+  var slot, _i, _len, _ref;
+  this.setPropertyWithoutSetter("expanded", true);
+  _ref = this.slots.children;
+  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+    slot = _ref[_i];
+    this.appendElement(this.renderSlot(slot));
+  }
+  return SUITE.AnimateChanges(this.$duration, (function(_this) {
+    return function() {
+      _this.$width = _this.openWidth;
+      return _this.$height = _this.openHeight;
+    };
+  })(this));
+}).addMethod("close", function() {
+  var slot, _i, _len, _ref;
+  this.setPropertyWithoutSetter("expanded", false);
+  _ref = this.slots.children;
+  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+    slot = _ref[_i];
+    slot.unrender();
+  }
+  return SUITE.AnimateChanges(this.$duration, (function(_this) {
+    return function() {
+      _this.$width = _this.$closedWidth;
+      return _this.$height = _this.$closedHeight;
+    };
+  })(this));
+}).setInitializer(function() {
+  this.openWidth = this.$width;
+  return this.openHeight = this.$height;
+}).setRenderer(function() {
+  var div, slot, _i, _len, _ref;
+  div = this.supermodule("absolute-element");
+  if (this.$expanded) {
+    _ref = this.slots.children;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      slot = _ref[_i];
+      div.appendChild(this.renderSlot(slot));
+    }
+  }
+  return div;
+}).setOnResize(function(size) {
+  this["super"](size);
+  this.openWidth = this.$width;
+  this.openHeight = this.$height;
+  if (!this.$expanded) {
+    this.$width = this.$closedWidth;
+    return this.$height = this.$closedHeight;
+  }
+}).register();
 new window.SUITE.ModuleBuilder("text").extend("fixed-size-element").addProperty("string", [SUITE.PrimitiveType.String], "", function(val) {
   if (this.rootElement == null) {
     return;
   }
   this.rootElement.innerHTML = val;
   return this.updateSize();
-}).addProperty("color", [SUITE.PrimitiveType.Color]).addProperty("fontFamily", [SUITE.PrimitiveType.String, SUITE.PrimitiveType.List], ["Helvetica", "Arial", "sans-serif"], function() {
+}).addProperty("color", [SUITE.PrimitiveType.Color]).addProperty("fontFamily", [SUITE.PrimitiveType.String, SUITE.PrimitiveType.List], null, function() {
+  return this.updateSize();
+}).addProperty("fontWeight", [SUITE.PrimitiveType.String], null, function() {
   return this.updateSize();
 }).addProperty("fontSize", [SUITE.PrimitiveType.Number], 12, function() {
   return this.updateSize();
@@ -2074,7 +2272,12 @@ new window.SUITE.ModuleBuilder("text").extend("fixed-size-element").addProperty(
     return this.$fontSize;
   },
   fontFamily: function() {
-    return "'" + (this.$fontFamily.join("', '")) + "'";
+    if (this.$fontFamily != null) {
+      return "'" + (this.$fontFamily.join("', '")) + "'";
+    }
+  },
+  fontWeight: function() {
+    return this.$fontWeight;
   },
   letterSpacing: function() {
     return this.$letterSpacing;
@@ -2156,7 +2359,7 @@ new window.SUITE.ModuleBuilder("column").extend("box").addProperty("justify", [S
 }).addProperty("spacing", [SUITE.PrimitiveType.Number], 0, function() {
   return this._relayout();
 }).addMethod("_relayout", function() {
-  var child, stack_width, total_height, _i, _j, _len, _len1, _ref, _ref1;
+  var child, spacing, stack_width, total_height, _i, _j, _len, _len1, _ref, _ref1;
   stack_width = 0;
   _ref = this.slots.children;
   for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -2168,11 +2371,12 @@ new window.SUITE.ModuleBuilder("column").extend("box").addProperty("justify", [S
   _ref1 = this.slots.children;
   for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
     child = _ref1[_j];
+    spacing = child.$columnSpacing != null ? child.$columnSpacing : this.$spacing;
     child.$x = (this.$width - child.$width) * this.$justify;
-    child.$y = total_height;
-    total_height += child.$height + this.$spacing;
+    child.$y = total_height - (this.$spacing - spacing);
+    total_height += child.$height + spacing;
   }
-  return this.$height = total_height - this.$spacing;
+  return this.$height = total_height - spacing;
 }).setRenderer(function() {
   var div;
   div = this["super"]();

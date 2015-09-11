@@ -122,6 +122,28 @@ class window.SUITE.Component
     component.bindToComponentProperty this, slot_class
     return component
 
+  # Adds a getter function as a slot to defer templating of that slot.
+  deferSlot: (slotName, func)->
+    if !(slot_class = @_module.slots[slotName])? then return false
+    @emptySlot slotName
+    delete @slots[slotName]
+    Object.defineProperty @slots, slotName,
+      configurable: true
+      get: ()=>
+        Object.defineProperty @slots, slotName,
+          get: undefined
+          configurable: true
+        Object.defineProperty @slots, slotName,
+          value: if slot_class.isRepeated then [] else undefined
+          writable: true
+
+        components = func()
+        if components instanceof Array
+          @fillSlot(slotName, c) for c in components
+        else @fillSlot slotName, components
+
+        return @slots[slotName]
+
   # Fills a slot with another component
   fillSlot: (slotName, component)->
     if !(slot_class = @_module.slots[slotName])? then return false
@@ -171,16 +193,22 @@ class window.SUITE.Component
   # Remove all components in a slot
   emptySlot: (slotName)->
     if !(slot_class = @_module.slots[slotName])? then return -1
+
     if @slots[slotName] instanceof Array
       for slot in @slots[slotName]
         slot.parent = undefined
         slot.unbindFromComponentProperty(slot_class)
+        slot.unrender()
       @_dispatchEvent "onRemove", [slotName, -1]
+      @slots[slotName] = []
+      if @_builtAPI then @_api.slots[slotName] = []
     else
+      if !@slots[slotName]? then return
       @slots[slotName].parent = undefined
       @slots[slotName].unbindFromComponentProperty(slot_class)
-    delete @slots[slotName]
-    if @_builtAPI then delete @_api.slots[slotName]
+      delete @slots[slotName]
+      if @_builtAPI then delete @_api.slots[slotName]
+
     @_dispatchEvent "onSlotChange", [slotName]
 
   # List all 'child' elements in any slot

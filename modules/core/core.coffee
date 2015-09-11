@@ -16,6 +16,7 @@ new window.SUITE.ModuleBuilder("visible-element")
   .addProperty "cornerRadius", [SUITE.PrimitiveType.Number]
   .addProperty "z", [SUITE.PrimitiveType.Number]
   .addProperty "opacity", [SUITE.PrimitiveType.Number]
+  .addProperty "cursor", [SUITE.PrimitiveType.String]
 
   .addStyle "styled",
     backgroundColor: ()-> @$fill
@@ -25,6 +26,7 @@ new window.SUITE.ModuleBuilder("visible-element")
     boxShadow: ()-> @$shadow
     zIndex: ()-> @$z
     opacity: ()-> @$opacity
+    cursor: ()-> @$cursor
 
 
   # IMPLEMENTATION ==========================================================================

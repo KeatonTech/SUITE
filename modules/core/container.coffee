@@ -3,7 +3,11 @@
 new window.SUITE.ModuleBuilder("container")
   .extend("absolute-element")
   .addSlot("children", true) # Repeated slot
+
   .addMethod "addChild", (child)-> @fillSlot "children", child
+  .addMethod "clearChildren", ()->
+    @emptySlot "children"
+    @unrender()
 
   # Rendered as a group, does not enforce any layout
   .setRenderer ()->
