@@ -7,6 +7,8 @@ class window.SUITE.Component
     @_elements = {}               # Stores named HTML elements rendered by this module
     @_varname = undefined         # Stores this component's template variable name
 
+    @_initialized = false         # Whether initialize() has run
+
     if module_or_name instanceof window.SUITE.Module
       @_module = module_or_name
       @type = module_or_name.name
@@ -155,7 +157,8 @@ class window.SUITE.Component
       if !@slots[slotName]? then @slots[slotName] = []
       index = @slots.length
       @slots[slotName].push component
-      if @_builtAPI then @_api.slots[slotName].push component._api
+      if @_builtAPI and !Object.getOwnPropertyDescriptor(@_api.slots,slotName).get?
+        @_api.slots[slotName].push component._api
       @_dispatchEvent "onAdd", [slotName, component, index]
     else
       if @slots[slotName]?
@@ -294,19 +297,24 @@ class window.SUITE.Component
 
   # HTML GENERATION =========================================================================
 
+  initialize: ()->
+    @_initialized = true
+    cleanup = @_api._prepare @_module.super, "initialize"
+    @_module.initialize.call @_api
+    cleanup()
+
   render: (first_render = true)->
     if !@_module.render? then return
 
     # If this is the first render, initialize the component
-    if first_render
-      cleanup = @_api._prepare @_module.super, "initialize"
-      @_module.initialize.call @_api
-      cleanup()
+    if !@_initialized then @initialize()
 
     # Run the module's render function with the appropriate super function
     cleanup = @_api._prepare @_module.super, "render"
     @_rootElement = @_module.render.call @_api
     cleanup()
+
+    if first_render then @_dispatchEvent "onShow"
 
     return @_rootElement
 
@@ -324,12 +332,14 @@ class window.SUITE.Component
       @_rootElement.parentNode.removeChild @_rootElement
     @_rootElement = undefined
     @_handlerBindings = {}
+    @_dispatchEvent "onHide"
     for child in @allSlotComponents()
       child.unrender()
 
   # Call the module's onResize function to update the HTML
   resize: (size)->
     if !@_module.onResize? then return
+    if !@_initialized then @initialize()
     cleanup = @_api._prepare @_module.super, "onResize"
     @_module.onResize.call @_api, size
     cleanup()

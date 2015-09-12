@@ -35,12 +35,15 @@ class window.SUITE.Transition
     element.setAttribute("style", element.getAttribute("style") + full_style)
 
     # Make the style changes
-    wait 5, ()->
+    wait 5, ()=>
       element.style[name] = value for name, value of attrs
 
       # Clean up the CSS3 transitions
-      wait 5, ()->
-        element.setAttribute("style", element.getAttribute("style").replace(full_style,""))
+      wait @duration+5, ()->
+        element.style.transition = ""
+        element.style.webkitTransition = ""
+        element.style.mozTransition = ""
+        element.style.msTransition = ""
 
 
 # Animations are collections of transitions that execute in order

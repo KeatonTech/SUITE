@@ -9,6 +9,7 @@ new window.SUITE.ModuleBuilder("visible-element")
 
   # STYLE PROPETIES =========================================================================
 
+  .addProperty "visible", [SUITE.PrimitiveType.Boolean], true
   .addProperty "fill", [SUITE.PrimitiveType.Color]
   .addProperty "stroke", [SUITE.PrimitiveType.Color]
   .addProperty "strokeWidth", [SUITE.PrimitiveType.Number]
@@ -27,6 +28,7 @@ new window.SUITE.ModuleBuilder("visible-element")
     zIndex: ()-> @$z
     opacity: ()-> @$opacity
     cursor: ()-> @$cursor
+    display: ()-> if !@$visible then "none" else "inherit"
 
 
   # IMPLEMENTATION ==========================================================================

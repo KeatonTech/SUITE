@@ -22,16 +22,22 @@ new window.SUITE.ModuleBuilder("expander")
   .addMethod "open", ()->
     @setPropertyWithoutSetter "expanded", true
     @appendElement(@renderSlot slot) for slot in @slots.children
+    slot.resize(@size) for slot in @slots.children
     SUITE.AnimateChanges @$duration, ()=>
       @$width = @openWidth
       @$height = @openHeight
+      slot.resize(@size) for slot in @slots.children
+
 
   .addMethod "close", ()->
     @setPropertyWithoutSetter "expanded", false
-    slot.unrender() for slot in @slots.children
     SUITE.AnimateChanges @$duration, ()=>
       @$width = @$closedWidth
       @$height = @$closedHeight
+      slot.resize({width: @$closedWidth, height: @$closedHeight}) for slot in @slots.children
+
+    wait @$duration, ()=>
+      slot.unrender() for slot in @slots.children
 
   # Normal module stuff
   .setInitializer ()->
@@ -40,11 +46,15 @@ new window.SUITE.ModuleBuilder("expander")
 
   .setRenderer ()->
     div = @supermodule("absolute-element")
+    div.style.overflow = "hidden"
     if @$expanded then div.appendChild(@renderSlot slot) for slot in @slots.children
     return div
 
   .setOnResize (size)->
-    @super(size)
+    if @$expanded
+      @super(size)
+    else
+      @super({width: @$closedWidth, height: @$closedHeight})
     @openWidth = @$width
     @openHeight = @$height
     if !@$expanded

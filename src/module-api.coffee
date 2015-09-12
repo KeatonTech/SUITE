@@ -157,13 +157,16 @@ class window.SUITE.ModuleAPI
     Object.defineProperty @slots, name,
       configurable: true
       get: ()=>
+
+        # This will create the slot if it hasn't been created already
+        slot = @_.slots[name]
+
         Object.defineProperty @slots, name,
           get: undefined
         Object.defineProperty @slots, name,
           value: undefined
           writable: true
 
-        slot = @_.slots[name]
         if slot instanceof Array
           sc = @slots[name] = []
           @_lazySlotAPI(sc, i, s) for i,s of slot

@@ -377,15 +377,20 @@ window.SUITE.Transition = (function() {
       return _results;
     })()).join(";");
     element.setAttribute("style", element.getAttribute("style") + full_style);
-    return wait(5, function() {
-      for (name in attrs) {
-        value = attrs[name];
-        element.style[name] = value;
-      }
-      return wait(5, function() {
-        return element.setAttribute("style", element.getAttribute("style").replace(full_style, ""));
-      });
-    });
+    return wait(5, (function(_this) {
+      return function() {
+        for (name in attrs) {
+          value = attrs[name];
+          element.style[name] = value;
+        }
+        return wait(_this.duration + 5, function() {
+          element.style.transition = "";
+          element.style.webkitTransition = "";
+          element.style.mozTransition = "";
+          return element.style.msTransition = "";
+        });
+      };
+    })(this));
   };
 
   return Transition;
@@ -958,6 +963,7 @@ window.SUITE.ModuleAPI = (function() {
       get: (function(_this) {
         return function() {
           var i, s, sc, slot;
+          slot = _this._.slots[name];
           Object.defineProperty(_this.slots, name, {
             get: void 0
           });
@@ -965,7 +971,6 @@ window.SUITE.ModuleAPI = (function() {
             value: void 0,
             writable: true
           });
-          slot = _this._.slots[name];
           if (slot instanceof Array) {
             sc = _this.slots[name] = [];
             for (i in slot) {
@@ -1025,6 +1030,7 @@ window.SUITE.Component = (function() {
     this._rootElement = void 0;
     this._elements = {};
     this._varname = void 0;
+    this._initialized = false;
     if (module_or_name instanceof window.SUITE.Module) {
       this._module = module_or_name;
       this.type = module_or_name.name;
@@ -1240,7 +1246,7 @@ window.SUITE.Component = (function() {
       }
       index = this.slots.length;
       this.slots[slotName].push(component);
-      if (this._builtAPI) {
+      if (this._builtAPI && (Object.getOwnPropertyDescriptor(this._api.slots, slotName).get == null)) {
         this._api.slots[slotName].push(component._api);
       }
       this._dispatchEvent("onAdd", [slotName, component, index]);
@@ -1495,6 +1501,14 @@ window.SUITE.Component = (function() {
     }
   };
 
+  Component.prototype.initialize = function() {
+    var cleanup;
+    this._initialized = true;
+    cleanup = this._api._prepare(this._module["super"], "initialize");
+    this._module.initialize.call(this._api);
+    return cleanup();
+  };
+
   Component.prototype.render = function(first_render) {
     var cleanup;
     if (first_render == null) {
@@ -1503,14 +1517,15 @@ window.SUITE.Component = (function() {
     if (this._module.render == null) {
       return;
     }
-    if (first_render) {
-      cleanup = this._api._prepare(this._module["super"], "initialize");
-      this._module.initialize.call(this._api);
-      cleanup();
+    if (!this._initialized) {
+      this.initialize();
     }
     cleanup = this._api._prepare(this._module["super"], "render");
     this._rootElement = this._module.render.call(this._api);
     cleanup();
+    if (first_render) {
+      this._dispatchEvent("onShow");
+    }
     return this._rootElement;
   };
 
@@ -1536,6 +1551,7 @@ window.SUITE.Component = (function() {
     }
     this._rootElement = void 0;
     this._handlerBindings = {};
+    this._dispatchEvent("onHide");
     _ref = this.allSlotComponents();
     _results = [];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -1549,6 +1565,9 @@ window.SUITE.Component = (function() {
     var cleanup;
     if (this._module.onResize == null) {
       return;
+    }
+    if (!this._initialized) {
+      this.initialize();
     }
     cleanup = this._api._prepare(this._module["super"], "onResize");
     this._module.onResize.call(this._api, size);
@@ -1943,7 +1962,7 @@ new window.SUITE.ModuleBuilder("visible-element").addProperty("id", [SUITE.Primi
   return this.setAttrs({
     "class": val
   });
-}).addProperty("fill", [SUITE.PrimitiveType.Color]).addProperty("stroke", [SUITE.PrimitiveType.Color]).addProperty("strokeWidth", [SUITE.PrimitiveType.Number]).addProperty("shadow", [SUITE.PrimitiveType.String]).addProperty("cornerRadius", [SUITE.PrimitiveType.Number]).addProperty("z", [SUITE.PrimitiveType.Number]).addProperty("opacity", [SUITE.PrimitiveType.Number]).addProperty("cursor", [SUITE.PrimitiveType.String]).addStyle("styled", {
+}).addProperty("visible", [SUITE.PrimitiveType.Boolean], true).addProperty("fill", [SUITE.PrimitiveType.Color]).addProperty("stroke", [SUITE.PrimitiveType.Color]).addProperty("strokeWidth", [SUITE.PrimitiveType.Number]).addProperty("shadow", [SUITE.PrimitiveType.String]).addProperty("cornerRadius", [SUITE.PrimitiveType.Number]).addProperty("z", [SUITE.PrimitiveType.Number]).addProperty("opacity", [SUITE.PrimitiveType.Number]).addProperty("cursor", [SUITE.PrimitiveType.String]).addStyle("styled", {
   backgroundColor: function() {
     return this.$fill;
   },
@@ -1967,6 +1986,13 @@ new window.SUITE.ModuleBuilder("visible-element").addProperty("id", [SUITE.Primi
   },
   cursor: function() {
     return this.$cursor;
+  },
+  display: function() {
+    if (!this.$visible) {
+      return "none";
+    } else {
+      return "inherit";
+    }
   }
 }).setRenderer(function(tag) {
   var div;
@@ -2200,31 +2226,61 @@ new window.SUITE.ModuleBuilder("expander").extend("box").addProperty("closedWidt
     return this.close();
   }
 }).addMethod("open", function() {
-  var slot, _i, _len, _ref;
+  var slot, _i, _j, _len, _len1, _ref, _ref1;
   this.setPropertyWithoutSetter("expanded", true);
   _ref = this.slots.children;
   for (_i = 0, _len = _ref.length; _i < _len; _i++) {
     slot = _ref[_i];
     this.appendElement(this.renderSlot(slot));
   }
-  return SUITE.AnimateChanges(this.$duration, (function(_this) {
-    return function() {
-      _this.$width = _this.openWidth;
-      return _this.$height = _this.openHeight;
-    };
-  })(this));
-}).addMethod("close", function() {
-  var slot, _i, _len, _ref;
-  this.setPropertyWithoutSetter("expanded", false);
-  _ref = this.slots.children;
-  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-    slot = _ref[_i];
-    slot.unrender();
+  _ref1 = this.slots.children;
+  for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+    slot = _ref1[_j];
+    slot.resize(this.size);
   }
   return SUITE.AnimateChanges(this.$duration, (function(_this) {
     return function() {
+      var _k, _len2, _ref2, _results;
+      _this.$width = _this.openWidth;
+      _this.$height = _this.openHeight;
+      _ref2 = _this.slots.children;
+      _results = [];
+      for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
+        slot = _ref2[_k];
+        _results.push(slot.resize(_this.size));
+      }
+      return _results;
+    };
+  })(this));
+}).addMethod("close", function() {
+  this.setPropertyWithoutSetter("expanded", false);
+  SUITE.AnimateChanges(this.$duration, (function(_this) {
+    return function() {
+      var slot, _i, _len, _ref, _results;
       _this.$width = _this.$closedWidth;
-      return _this.$height = _this.$closedHeight;
+      _this.$height = _this.$closedHeight;
+      _ref = _this.slots.children;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        slot = _ref[_i];
+        _results.push(slot.resize({
+          width: _this.$closedWidth,
+          height: _this.$closedHeight
+        }));
+      }
+      return _results;
+    };
+  })(this));
+  return wait(this.$duration, (function(_this) {
+    return function() {
+      var slot, _i, _len, _ref, _results;
+      _ref = _this.slots.children;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        slot = _ref[_i];
+        _results.push(slot.unrender());
+      }
+      return _results;
     };
   })(this));
 }).setInitializer(function() {
@@ -2233,6 +2289,7 @@ new window.SUITE.ModuleBuilder("expander").extend("box").addProperty("closedWidt
 }).setRenderer(function() {
   var div, slot, _i, _len, _ref;
   div = this.supermodule("absolute-element");
+  div.style.overflow = "hidden";
   if (this.$expanded) {
     _ref = this.slots.children;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -2242,7 +2299,14 @@ new window.SUITE.ModuleBuilder("expander").extend("box").addProperty("closedWidt
   }
   return div;
 }).setOnResize(function(size) {
-  this["super"](size);
+  if (this.$expanded) {
+    this["super"](size);
+  } else {
+    this["super"]({
+      width: this.$closedWidth,
+      height: this.$closedHeight
+    });
+  }
   this.openWidth = this.$width;
   this.openHeight = this.$height;
   if (!this.$expanded) {

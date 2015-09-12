@@ -168,7 +168,7 @@
 
 }).call(this);
 (function() {
-  new window.SUITE.ModuleBuilder("list").extend("box").addProperty("totalHeight", [SUITE.PrimitiveType.Number]).addMethod("_relayout", function() {
+  new window.SUITE.ModuleBuilder("list").extend("box").addProperty("scrollMargin", [SUITE.PrimitiveType.Number], 500).addProperty("totalHeight", [SUITE.PrimitiveType.Number]).addMethod("_relayout", function() {
     var child, total_height, _i, _len, _ref;
     total_height = 0;
     _ref = this.slots.children;
@@ -182,11 +182,10 @@
   }).addEventHandler("onResize", function(size) {
     return this._relayout();
   }).addMethod("_scrolled", function() {
-    var container, item, margin, nli, vstart, vstop, _i, _len, _ref;
+    var container, item, nli, vstart, vstop, _i, _len, _ref;
     container = this.getElement("container");
-    margin = 500;
-    vstart = this.rootElement.scrollTop - margin;
-    vstop = vstart + this.$height + 2 * margin;
+    vstart = this.rootElement.scrollTop - this.$scrollMargin;
+    vstop = vstart + this.$height + 2 * this.$scrollMargin;
     _ref = this.slots.children;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       item = _ref[_i];
@@ -238,7 +237,9 @@
         height: slot.$height
       });
     }
-    return this._scrolled();
+    if (this.rootElement != null) {
+      return this._scrolled();
+    }
   }).register();
 
   new window.SUITE.ModuleBuilder("list-item").extend("absolute-element").setPropertyDefault("height", 55).addProperty("title", [SUITE.PrimitiveType.String], "", function() {
@@ -280,6 +281,73 @@
     this.$width = size.width;
     if (container = this.getElement("container")) {
       return container.$width = this.$width;
+    }
+  }).register();
+
+  new window.SUITE.ModuleBuilder("html-list").extend("list").addProperty("minItemHeight", [SUITE.PrimitiveType.Number], 20).addProperty("itemCount", [SUITE.PrimitiveType.Number], 0, function() {
+    return this._scrolled();
+  }).addProperty("renderSlot", [SUITE.PrimitiveType.Function]).setInitializer(function() {
+    return this.renderedElements = [];
+  }).addMethod("_scrolled", function() {
+    var container, i, item, new_items, pos, vstart, vstop, _i, _ref;
+    container = this.getElement("container");
+    vstart = this.rootElement.scrollTop - this.$scrollMargin;
+    vstop = vstart + this.$height + 2 * this.$scrollMargin;
+    new_items = false;
+    pos = 0;
+    for (i = _i = 0, _ref = this.$itemCount; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
+      if (i >= this.renderedElements.length) {
+        this.renderedElements.push(void 0);
+      }
+      if (!(item = this.renderedElements[i])) {
+        if (pos > vstop) {
+          continue;
+        }
+        item = this.renderedElements[i] = this.$renderSlot.call(this, i);
+        item.style.width = this.$width + "px";
+        new_items = true;
+        container.appendChild(item);
+        pos += this.$minItemHeight;
+      } else {
+        pos += item.offsetHeight;
+      }
+    }
+    if (new_items) {
+      wait(5, (function(_this) {
+        return function() {
+          var accY, _j, _len, _ref1, _results;
+          _ref1 = _this.renderedElements;
+          _results = [];
+          for (_j = 0, _len = _ref1.length; _j < _len; _j++) {
+            item = _ref1[_j];
+            if (item != null) {
+              if (typeof accY === "undefined" || accY === null) {
+                _results.push(accY = (item.offsetTop + item.offsetHeight) || 0);
+              } else {
+                item.style.top = accY + "px";
+                _results.push(accY += item.offsetHeight);
+              }
+            }
+          }
+          return _results;
+        };
+      })(this));
+    }
+  }).setRenderer(function() {
+    this.renderedElements = [];
+    return this["super"]();
+  }).setOnResize(function(size) {
+    var item, _i, _len, _ref;
+    this.adjustSizeBounded(size);
+    _ref = this.renderedElements;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      item = _ref[_i];
+      if (item != null) {
+        item.style.width = size.width;
+      }
+    }
+    if (this.rootElement != null) {
+      return this._scrolled();
     }
   }).register();
 
