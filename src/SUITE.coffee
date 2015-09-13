@@ -57,3 +57,4 @@ window.SUITE =
 #@prepros-append ../modules/core/image.coffee
 #@prepros-append ../modules/core/row.coffee
 #@prepros-append ../modules/core/column.coffee
+#@prepros-append ../modules/core/form.coffee

@@ -2451,3 +2451,34 @@ new window.SUITE.ModuleBuilder("column").extend("box").addProperty("justify", [S
 }).addSlotEventHandler("children", "onResize", function(size) {
   return this._relayout();
 }).register();
+new window.SUITE.ModuleBuilder("text-input").extend("absolute-element").addProperty("value", [SUITE.PrimitiveType.String], void 0, function(val) {
+  if (this.rootElement == null) {
+    return;
+  }
+  return this.rootElement.value = val;
+}).addProperty("placeholder", [SUITE.PrimitiveType.String], void 0, function(val) {
+  if (this.rootElement == null) {
+    return;
+  }
+  return this.rootElement.setAttribute("placeholder", val);
+}).setRenderer(function() {
+  var input;
+  input = this["super"]("input");
+  if (this.$value != null) {
+    input.setAttribute("value", this.$value);
+  }
+  if (this.$placeholder != null) {
+    input.setAttribute("placeholder", this.$placeholder);
+  }
+  input.addEventListener("keyup", (function(_this) {
+    return function(e) {
+      _this.setPropertyWithoutSetter("value", input.value);
+      if (e.keyCode === 13) {
+        return _this.dispatchEvent("onSubmit", [_this.$value]);
+      } else {
+        return _this.dispatchEvent("onChange", [_this.$value]);
+      }
+    };
+  })(this));
+  return input;
+}).register();

@@ -168,7 +168,7 @@
 
 }).call(this);
 (function() {
-  new window.SUITE.ModuleBuilder("list").extend("box").addProperty("scrollMargin", [SUITE.PrimitiveType.Number], 500).addProperty("totalHeight", [SUITE.PrimitiveType.Number]).addMethod("_relayout", function() {
+  new window.SUITE.ModuleBuilder("list").extend("box").addProperty("scrollMargin", [SUITE.PrimitiveType.Number], 500).addProperty("expandBack", [SUITE.PrimitiveType.Function]).addProperty("expandFront", [SUITE.PrimitiveType.Function]).addProperty("isTable", [SUITE.PrimitiveType.Boolean], false).addProperty("totalHeight", [SUITE.PrimitiveType.Number]).addMethod("_relayout", function() {
     var child, total_height, _i, _len, _ref;
     total_height = 0;
     _ref = this.slots.children;
@@ -218,7 +218,7 @@
   }).setRenderer(function() {
     var container, div;
     div = this.supermodule("absolute-element");
-    container = this.createElement("container", "div");
+    container = this.createElement("container", this.$isTable ? "table" : "div");
     this.applyStyle(container, "listContainerStyle");
     this.appendElement(container);
     div.addEventListener("scroll", this._scrolled);
@@ -242,6 +242,8 @@
     }
   }).register();
 
+}).call(this);
+(function() {
   new window.SUITE.ModuleBuilder("list-item").extend("absolute-element").setPropertyDefault("height", 55).addProperty("title", [SUITE.PrimitiveType.String], "", function() {
     return this.rerender;
   }).addProperty("subtitle", [SUITE.PrimitiveType.String], "", function() {
@@ -284,10 +286,18 @@
     }
   }).register();
 
-  new window.SUITE.ModuleBuilder("html-list").extend("list").addProperty("minItemHeight", [SUITE.PrimitiveType.Number], 20).addProperty("itemCount", [SUITE.PrimitiveType.Number], 0, function() {
+}).call(this);
+(function() {
+  new window.SUITE.ModuleBuilder("html-list").extend("list").setPropertyDefault("isTable", true).addProperty("minItemHeight", [SUITE.PrimitiveType.Number], 20).addProperty("itemCount", [SUITE.PrimitiveType.Number], 0, function() {
     return this._scrolled();
   }).addProperty("renderSlot", [SUITE.PrimitiveType.Function]).setInitializer(function() {
     return this.renderedElements = [];
+  }).addMethod("_renderElement", function(container, i) {
+    var item;
+    item = this.renderedElements[i] = this.$renderSlot.call(this, i);
+    item.style.width = this.$width + "px";
+    container.appendChild(item);
+    return this.$minItemHeight;
   }).addMethod("_scrolled", function() {
     var container, i, item, new_items, pos, vstart, vstop, _i, _ref;
     container = this.getElement("container");
@@ -303,11 +313,8 @@
         if (pos > vstop) {
           continue;
         }
-        item = this.renderedElements[i] = this.$renderSlot.call(this, i);
-        item.style.width = this.$width + "px";
         new_items = true;
-        container.appendChild(item);
-        pos += this.$minItemHeight;
+        pos += this._renderElement(container, i);
       } else {
         pos += item.offsetHeight;
       }
