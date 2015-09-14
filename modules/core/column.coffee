@@ -10,16 +10,23 @@ new window.SUITE.ModuleBuilder("column")
 
   # Internal function to update the layout of the stack
   .addMethod "_relayout", ()->
+    if @_layoutInProgress then return
+    @_layoutInProgress = true
 
     # Figure out how wide this stack should be
-    stack_width = 0
+    stack_width = @_baseSize.width
     for child in @slots.children
+      if child._colFloatingWidth then continue
+      if child.$expanded? and !child.$expanded then continue
       stack_width = Math.max(child.$width, stack_width)
     @$width = stack_width
 
     # Position each child in the stack
     total_height = 0
     for child in @slots.children
+      if child._colFloatingWidth
+        child.$width = stack_width
+
       spacing = if child.$columnSpacing? then child.$columnSpacing else @$spacing
       child.$x = (@$width - child.$width) * @$justify
       child.$y = total_height - (@$spacing - spacing)
@@ -27,6 +34,16 @@ new window.SUITE.ModuleBuilder("column")
 
     # Make this stack the correct height
     @$height = total_height - spacing
+
+    @_layoutInProgress = false
+
+  # Check which children don't have a fixed size
+  .setInitializer ()->
+    @_baseSize = @size
+    for child in @slots.children
+      if child.$width is "auto"
+        child._colFloatingWidth = true
+        child.$width = 0
 
   # Lay out the children
   .setRenderer ()->

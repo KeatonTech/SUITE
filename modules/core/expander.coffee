@@ -23,17 +23,23 @@ new window.SUITE.ModuleBuilder("expander")
     @setPropertyWithoutSetter "expanded", true
     @appendElement(@renderSlot slot) for slot in @slots.children
     slot.resize(@size) for slot in @slots.children
+    @$opacity = 0
+
     SUITE.AnimateChanges @$duration, ()=>
       @$width = @openWidth
       @$height = @openHeight
+      @$opacity = 1
       slot.resize(@size) for slot in @slots.children
 
 
   .addMethod "close", ()->
     @setPropertyWithoutSetter "expanded", false
+    @$opacity = 1
+
     SUITE.AnimateChanges @$duration, ()=>
       @$width = @$closedWidth
       @$height = @$closedHeight
+      @$opacity = 0
       slot.resize({width: @$closedWidth, height: @$closedHeight}) for slot in @slots.children
 
     wait @$duration, ()=>
@@ -47,7 +53,15 @@ new window.SUITE.ModuleBuilder("expander")
   .setRenderer ()->
     div = @supermodule("absolute-element")
     div.style.overflow = "hidden"
-    if @$expanded then div.appendChild(@renderSlot slot) for slot in @slots.children
+
+    if @$expanded
+      wait 0, ()=>
+        @$width = @openWidth
+        @$height = @openHeight
+        @$opacity = 1
+        slot.resize(@size) for slot in @slots.children
+        div.appendChild(@renderSlot slot) for slot in @slots.children
+
     return div
 
   .setOnResize (size)->
@@ -55,9 +69,10 @@ new window.SUITE.ModuleBuilder("expander")
       @super(size)
     else
       @super({width: @$closedWidth, height: @$closedHeight})
-    @openWidth = @$width
-    @openHeight = @$height
-    if !@$expanded
+    if @expanded
+      @openWidth = @$width
+      @openHeight = @$height
+    else
       @$width = @$closedWidth
       @$height = @$closedHeight
 

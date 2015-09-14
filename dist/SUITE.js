@@ -2238,11 +2238,13 @@ new window.SUITE.ModuleBuilder("expander").extend("box").addProperty("closedWidt
     slot = _ref1[_j];
     slot.resize(this.size);
   }
+  this.$opacity = 0;
   return SUITE.AnimateChanges(this.$duration, (function(_this) {
     return function() {
       var _k, _len2, _ref2, _results;
       _this.$width = _this.openWidth;
       _this.$height = _this.openHeight;
+      _this.$opacity = 1;
       _ref2 = _this.slots.children;
       _results = [];
       for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
@@ -2254,11 +2256,13 @@ new window.SUITE.ModuleBuilder("expander").extend("box").addProperty("closedWidt
   })(this));
 }).addMethod("close", function() {
   this.setPropertyWithoutSetter("expanded", false);
+  this.$opacity = 1;
   SUITE.AnimateChanges(this.$duration, (function(_this) {
     return function() {
       var slot, _i, _len, _ref, _results;
       _this.$width = _this.$closedWidth;
       _this.$height = _this.$closedHeight;
+      _this.$opacity = 0;
       _ref = _this.slots.children;
       _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -2287,15 +2291,30 @@ new window.SUITE.ModuleBuilder("expander").extend("box").addProperty("closedWidt
   this.openWidth = this.$width;
   return this.openHeight = this.$height;
 }).setRenderer(function() {
-  var div, slot, _i, _len, _ref;
+  var div;
   div = this.supermodule("absolute-element");
   div.style.overflow = "hidden";
   if (this.$expanded) {
-    _ref = this.slots.children;
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      slot = _ref[_i];
-      div.appendChild(this.renderSlot(slot));
-    }
+    wait(0, (function(_this) {
+      return function() {
+        var slot, _i, _j, _len, _len1, _ref, _ref1, _results;
+        _this.$width = _this.openWidth;
+        _this.$height = _this.openHeight;
+        _this.$opacity = 1;
+        _ref = _this.slots.children;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          slot = _ref[_i];
+          slot.resize(_this.size);
+        }
+        _ref1 = _this.slots.children;
+        _results = [];
+        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+          slot = _ref1[_j];
+          _results.push(div.appendChild(_this.renderSlot(slot)));
+        }
+        return _results;
+      };
+    })(this));
   }
   return div;
 }).setOnResize(function(size) {
@@ -2307,9 +2326,10 @@ new window.SUITE.ModuleBuilder("expander").extend("box").addProperty("closedWidt
       height: this.$closedHeight
     });
   }
-  this.openWidth = this.$width;
-  this.openHeight = this.$height;
-  if (!this.$expanded) {
+  if (this.expanded) {
+    this.openWidth = this.$width;
+    return this.openHeight = this.$height;
+  } else {
     this.$width = this.$closedWidth;
     return this.$height = this.$closedHeight;
   }
@@ -2424,10 +2444,20 @@ new window.SUITE.ModuleBuilder("column").extend("box").addProperty("justify", [S
   return this._relayout();
 }).addMethod("_relayout", function() {
   var child, spacing, stack_width, total_height, _i, _j, _len, _len1, _ref, _ref1;
-  stack_width = 0;
+  if (this._layoutInProgress) {
+    return;
+  }
+  this._layoutInProgress = true;
+  stack_width = this._baseSize.width;
   _ref = this.slots.children;
   for (_i = 0, _len = _ref.length; _i < _len; _i++) {
     child = _ref[_i];
+    if (child._colFloatingWidth) {
+      continue;
+    }
+    if ((child.$expanded != null) && !child.$expanded) {
+      continue;
+    }
     stack_width = Math.max(child.$width, stack_width);
   }
   this.$width = stack_width;
@@ -2435,12 +2465,31 @@ new window.SUITE.ModuleBuilder("column").extend("box").addProperty("justify", [S
   _ref1 = this.slots.children;
   for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
     child = _ref1[_j];
+    if (child._colFloatingWidth) {
+      child.$width = stack_width;
+    }
     spacing = child.$columnSpacing != null ? child.$columnSpacing : this.$spacing;
     child.$x = (this.$width - child.$width) * this.$justify;
     child.$y = total_height - (this.$spacing - spacing);
     total_height += child.$height + spacing;
   }
-  return this.$height = total_height - spacing;
+  this.$height = total_height - spacing;
+  return this._layoutInProgress = false;
+}).setInitializer(function() {
+  var child, _i, _len, _ref, _results;
+  this._baseSize = this.size;
+  _ref = this.slots.children;
+  _results = [];
+  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+    child = _ref[_i];
+    if (child.$width === "auto") {
+      child._colFloatingWidth = true;
+      _results.push(child.$width = 0);
+    } else {
+      _results.push(void 0);
+    }
+  }
+  return _results;
 }).setRenderer(function() {
   var div;
   div = this["super"]();
