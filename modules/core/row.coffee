@@ -16,14 +16,19 @@ new window.SUITE.ModuleBuilder("row")
     # Figure out how wide this stack should be
     stack_height = 0
     for child in @slots.children
-      stack_height = Math.max(child.$height, stack_height)
+      height = child.$height
+      if child.$rowPadding? then height += child.$rowPadding * 2
+      stack_height = Math.max(height, stack_height)
     @$height = stack_height
 
     # Position each child in the stack
     total_width = 0
     for child in @slots.children
       child.$x = total_width
-      child.$y = (@$height - child.$height) * @$verticalAlign
+      height = child.$height
+      if child.$rowPadding? then height += child.$rowPadding * 2
+      child.$y = (@$height - height) * @$verticalAlign
+      if child.$rowPadding? then child.$y += child.$rowPadding
       total_width += child.$width + @$spacing
 
     # Make this stack the correct height

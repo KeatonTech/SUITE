@@ -2411,12 +2411,16 @@ new window.SUITE.ModuleBuilder("row").extend("box").removeProperty("maxWidth").r
 }).addProperty("spacing", [SUITE.PrimitiveType.Number], 0, function() {
   return this._relayout();
 }).addMethod("_relayout", function() {
-  var child, stack_height, total_width, _i, _j, _len, _len1, _ref, _ref1;
+  var child, height, stack_height, total_width, _i, _j, _len, _len1, _ref, _ref1;
   stack_height = 0;
   _ref = this.slots.children;
   for (_i = 0, _len = _ref.length; _i < _len; _i++) {
     child = _ref[_i];
-    stack_height = Math.max(child.$height, stack_height);
+    height = child.$height;
+    if (child.$rowPadding != null) {
+      height += child.$rowPadding * 2;
+    }
+    stack_height = Math.max(height, stack_height);
   }
   this.$height = stack_height;
   total_width = 0;
@@ -2424,7 +2428,14 @@ new window.SUITE.ModuleBuilder("row").extend("box").removeProperty("maxWidth").r
   for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
     child = _ref1[_j];
     child.$x = total_width;
-    child.$y = (this.$height - child.$height) * this.$verticalAlign;
+    height = child.$height;
+    if (child.$rowPadding != null) {
+      height += child.$rowPadding * 2;
+    }
+    child.$y = (this.$height - height) * this.$verticalAlign;
+    if (child.$rowPadding != null) {
+      child.$y += child.$rowPadding;
+    }
     total_width += child.$width + this.$spacing;
   }
   return this.$width = total_width - this.$spacing;
@@ -2443,30 +2454,37 @@ new window.SUITE.ModuleBuilder("column").extend("box").addProperty("justify", [S
 }).addProperty("spacing", [SUITE.PrimitiveType.Number], 0, function() {
   return this._relayout();
 }).addMethod("_relayout", function() {
-  var child, spacing, stack_width, total_height, _i, _j, _len, _len1, _ref, _ref1;
+  var child, spacing, stack_height, stack_width, total_height, _i, _j, _len, _len1, _ref, _ref1;
   if (this._layoutInProgress) {
     return;
   }
   this._layoutInProgress = true;
   stack_width = this._baseSize.width;
+  stack_height = 0;
   _ref = this.slots.children;
   for (_i = 0, _len = _ref.length; _i < _len; _i++) {
     child = _ref[_i];
-    if (child._colFloatingWidth) {
+    if (child._colAutoWidth) {
       continue;
     }
     if ((child.$expanded != null) && !child.$expanded) {
       continue;
     }
     stack_width = Math.max(child.$width, stack_width);
+    if (this._hasAutoHeight && !child._colAutoHeight) {
+      stack_height += child.$height;
+    }
   }
   this.$width = stack_width;
   total_height = 0;
   _ref1 = this.slots.children;
   for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
     child = _ref1[_j];
-    if (child._colFloatingWidth) {
+    if (child._colAutoWidth) {
       child.$width = stack_width;
+    }
+    if (child._colAutoHeight) {
+      child.$height = this.$height - stack_height;
     }
     spacing = child.$columnSpacing != null ? child.$columnSpacing : this.$spacing;
     child.$x = (this.$width - child.$width) * this.$justify;
@@ -2478,13 +2496,19 @@ new window.SUITE.ModuleBuilder("column").extend("box").addProperty("justify", [S
 }).setInitializer(function() {
   var child, _i, _len, _ref, _results;
   this._baseSize = this.size;
+  this._hasAutoHeight = false;
   _ref = this.slots.children;
   _results = [];
   for (_i = 0, _len = _ref.length; _i < _len; _i++) {
     child = _ref[_i];
     if (child.$width === "auto") {
-      child._colFloatingWidth = true;
-      _results.push(child.$width = 0);
+      child._colAutoWidth = true;
+      child.$width = 0;
+    }
+    if (child.$height === "auto") {
+      this._hasAutoHeight = true;
+      child._colAutoHeight = true;
+      _results.push(child.$height = 0);
     } else {
       _results.push(void 0);
     }
@@ -2530,4 +2554,56 @@ new window.SUITE.ModuleBuilder("text-input").extend("absolute-element").addPrope
     };
   })(this));
   return input;
+}).register();
+
+new window.SUITE.ModuleBuilder("text-area").extend("absolute-element").addProperty("value", [SUITE.PrimitiveType.String], void 0, function(val) {
+  if (this.rootElement == null) {
+    return;
+  }
+  this.rootElement.value = val;
+  return this.contentResize();
+}).addProperty("placeholder", [SUITE.PrimitiveType.String], void 0, function(val) {
+  if (this.rootElement == null) {
+    return;
+  }
+  return this.rootElement.setAttribute("placeholder", val);
+}).addMethod("contentResize", function() {
+  this.rootElement.style.height = 'auto';
+  return this.$height = this.rootElement.scrollHeight;
+}).addMethod("deferredContentResize", function() {
+  return wait(0, this.contentResize);
+}).setRenderer(function() {
+  var textarea;
+  textarea = this["super"]("textarea");
+  textarea.setAttribute("rows", "1");
+  if (this.$value != null) {
+    textarea.setAttribute("value", this.$value);
+  }
+  if (this.$placeholder != null) {
+    textarea.setAttribute("placeholder", this.$placeholder);
+  }
+  textarea.addEventListener('change', this.contentResize);
+  textarea.addEventListener('cut', this.deferredContentResize);
+  textarea.addEventListener('paste', this.deferredContentResize);
+  textarea.addEventListener('drop', this.deferredContentResize);
+  textarea.addEventListener('keydown', this.deferredContentResize);
+  textarea.focus();
+  textarea.select();
+  this.contentResize;
+  textarea.addEventListener("keypress", function(e) {
+    if (e.keyCode === 13) {
+      return false;
+    }
+  });
+  textarea.addEventListener("keyup", (function(_this) {
+    return function(e) {
+      _this.setPropertyWithoutSetter("value", textarea.value);
+      if (e.keyCode === 13) {
+        return _this.dispatchEvent("onSubmit", [_this.$value]);
+      } else {
+        return _this.dispatchEvent("onChange", [_this.$value]);
+      }
+    };
+  })(this));
+  return textarea;
 }).register();
