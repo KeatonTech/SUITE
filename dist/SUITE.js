@@ -1619,24 +1619,38 @@ window.SUITE.Stage = (function(_super) {
   return Stage;
 
 })(window.SUITE.Component);
+var __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+  __slice = [].slice;
+
 window.SUITE.Global = (function() {
   function Global(value) {
     this.value = value;
     this.deps = [];
+    this.fdeps = [];
   }
 
   Global.prototype.addDependency = function(component, property) {
     return this.deps.push([component, property]);
   };
 
+  Global.prototype.addFunctionDependency = function(f) {
+    return this.fdeps.push(f);
+  };
+
   Global.prototype.set = function(value) {
-    var component, property, _i, _len, _ref, _ref1, _results;
+    var component, f, property, _i, _j, _len, _len1, _ref, _ref1, _ref2, _results;
     this.value = value;
     _ref = this.deps;
-    _results = [];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       _ref1 = _ref[_i], component = _ref1[0], property = _ref1[1];
-      _results.push(component[property] = value);
+      component[property] = value;
+    }
+    _ref2 = this.fdeps;
+    _results = [];
+    for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
+      f = _ref2[_j];
+      _results.push(f.call(this, value));
     }
     return _results;
   };
@@ -1644,6 +1658,42 @@ window.SUITE.Global = (function() {
   return Global;
 
 })();
+
+window.SUITE.Expression = (function(_super) {
+  __extends(Expression, _super);
+
+  function Expression() {
+    var func, g, globals, _i, _j, _len, _ref;
+    globals = 2 <= arguments.length ? __slice.call(arguments, 0, _i = arguments.length - 1) : (_i = 0, []), func = arguments[_i++];
+    Expression.__super__.constructor.call(this);
+    this.globals = globals;
+    this.func = func;
+    _ref = this.globals;
+    for (_j = 0, _len = _ref.length; _j < _len; _j++) {
+      g = _ref[_j];
+      g.addFunctionDependency(this.update.bind(this));
+    }
+  }
+
+  Expression.prototype.update = function() {
+    var g, output, values;
+    values = (function() {
+      var _i, _len, _ref, _results;
+      _ref = this.globals;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        g = _ref[_i];
+        _results.push(g.value);
+      }
+      return _results;
+    }).call(this);
+    output = this.func.apply(this, values);
+    return this.set(output);
+  };
+
+  return Expression;
+
+})(window.SUITE.Global);
 window.SUITE.Template = (function() {
   function Template(topLevelComponent) {
     this._component = topLevelComponent;
@@ -1900,7 +1950,7 @@ window.SUITE._parseTemplateInternal = function(json) {
         slot_name = Object.keys(component._module.slots)[0];
         component.fillSlot(slot_name, build_recursive(name, val, template));
       } else if (name[0] === "$") {
-        if (val instanceof SUITE.Global) {
+        if (val instanceof SUITE.Global || val instanceof SUITE.Expression) {
           component[name] = val.value;
           val.addDependency(component, name);
         } else {

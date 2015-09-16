@@ -91,7 +91,7 @@ window.SUITE._parseTemplateInternal = (json)->
 
       # Properties
       else if name[0] == "$"
-        if val instanceof SUITE.Global
+        if val instanceof SUITE.Global or val instanceof SUITE.Expression
           component[name] = val.value
           val.addDependency component, name
         else
