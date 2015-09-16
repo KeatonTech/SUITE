@@ -2228,10 +2228,13 @@ new window.SUITE.ModuleBuilder("expander").extend("box").addProperty("closedWidt
 }).addMethod("open", function() {
   var slot, _i, _j, _len, _len1, _ref, _ref1;
   this.setPropertyWithoutSetter("expanded", true);
-  _ref = this.slots.children;
-  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-    slot = _ref[_i];
-    this.appendElement(this.renderSlot(slot));
+  if (!this._renderedSlots) {
+    _ref = this.slots.children;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      slot = _ref[_i];
+      this.appendElement(this.renderSlot(slot));
+    }
+    this._renderedSlots = true;
   }
   _ref1 = this.slots.children;
   for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
@@ -2257,7 +2260,7 @@ new window.SUITE.ModuleBuilder("expander").extend("box").addProperty("closedWidt
 }).addMethod("close", function() {
   this.setPropertyWithoutSetter("expanded", false);
   this.$opacity = 1;
-  SUITE.AnimateChanges(this.$duration, (function(_this) {
+  return SUITE.AnimateChanges(this.$duration, (function(_this) {
     return function() {
       var slot, _i, _len, _ref, _results;
       _this.$width = _this.$closedWidth;
@@ -2275,21 +2278,10 @@ new window.SUITE.ModuleBuilder("expander").extend("box").addProperty("closedWidt
       return _results;
     };
   })(this));
-  return wait(this.$duration, (function(_this) {
-    return function() {
-      var slot, _i, _len, _ref, _results;
-      _ref = _this.slots.children;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        slot = _ref[_i];
-        _results.push(slot.unrender());
-      }
-      return _results;
-    };
-  })(this));
 }).setInitializer(function() {
   this.openWidth = this.$width;
-  return this.openHeight = this.$height;
+  this.openHeight = this.$height;
+  return this._renderedSlots = false;
 }).setRenderer(function() {
   var div;
   div = this.supermodule("absolute-element");

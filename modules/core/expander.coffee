@@ -21,7 +21,11 @@ new window.SUITE.ModuleBuilder("expander")
   # This is where the magic happens
   .addMethod "open", ()->
     @setPropertyWithoutSetter "expanded", true
-    @appendElement(@renderSlot slot) for slot in @slots.children
+
+    if !@_renderedSlots
+      @appendElement(@renderSlot slot) for slot in @slots.children
+      @_renderedSlots = true
+
     slot.resize(@size) for slot in @slots.children
     @$opacity = 0
 
@@ -42,13 +46,15 @@ new window.SUITE.ModuleBuilder("expander")
       @$opacity = 0
       slot.resize({width: @$closedWidth, height: @$closedHeight}) for slot in @slots.children
 
-    wait @$duration, ()=>
-      slot.unrender() for slot in @slots.children
+    # There seems to be little to no benefit of doing this
+    #wait @$duration, ()=>
+    #  slot.unrender() for slot in @slots.children
 
   # Normal module stuff
   .setInitializer ()->
     @openWidth = @$width
     @openHeight = @$height
+    @_renderedSlots = false
 
   .setRenderer ()->
     div = @supermodule("absolute-element")
