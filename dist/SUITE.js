@@ -2208,15 +2208,7 @@ new window.SUITE.ModuleBuilder("box").extend("container").addProperty("minWidth"
   }
   return _results;
 }).register();
-new window.SUITE.ModuleBuilder("expander").extend("box").addProperty("closedWidth", [SUITE.PrimitiveType.Number], 0, function(val) {
-  if (val > 0 && this.$closedHeight > 0) {
-    return this.$closedWidth = 0;
-  }
-}).addProperty("closedHeight", [SUITE.PrimitiveType.Number], 0, function(val) {
-  if (val > 0 && this.$closedWidth > 0) {
-    return this.$closedHeight = 0;
-  }
-}).addProperty("duration", [SUITE.PrimitiveType.Number], 200).addProperty("expanded", [SUITE.PrimitiveType.Boolean], false, function(val, old) {
+new window.SUITE.ModuleBuilder("expander").extend("box").addProperty("expanded", [SUITE.PrimitiveType.Boolean], false, function(val, old) {
   if (val === old) {
     return;
   }
@@ -2225,16 +2217,37 @@ new window.SUITE.ModuleBuilder("expander").extend("box").addProperty("closedWidt
   } else {
     return this.close();
   }
-}).addMethod("open", function() {
+}).addProperty("closedWidth", [SUITE.PrimitiveType.Number], 0, function(val) {
+  if (val > 0 && this.$closedHeight > 0) {
+    this.$closedWidth = 0;
+  }
+  if (!this.$expanded) {
+    return this.$width = val;
+  }
+}).addProperty("closedHeight", [SUITE.PrimitiveType.Number], 0, function(val) {
+  if (val > 0 && this.$closedWidth > 0) {
+    this.$closedHeight = 0;
+  }
+  if (!this.$expanded) {
+    return this.$height = val;
+  }
+}).addProperty("openWidth", [SUITE.PrimitiveType.Number], 0, function(val) {
+  if (this.$expanded) {
+    return this.$width = val;
+  }
+}).addProperty("openHeight", [SUITE.PrimitiveType.Number], 0, function(val) {
+  if (this.$expanded) {
+    return this.$height = val;
+  }
+}).addProperty("duration", [SUITE.PrimitiveType.Number], 200).addMethod("open", function() {
   var slot, _i, _j, _len, _len1, _ref, _ref1;
   this.setPropertyWithoutSetter("expanded", true);
-  if (!this._renderedSlots) {
+  if (this.rootElement.children.length < 1) {
     _ref = this.slots.children;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       slot = _ref[_i];
       this.appendElement(this.renderSlot(slot));
     }
-    this._renderedSlots = true;
   }
   _ref1 = this.slots.children;
   for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
@@ -2245,8 +2258,8 @@ new window.SUITE.ModuleBuilder("expander").extend("box").addProperty("closedWidt
   return SUITE.AnimateChanges(this.$duration, (function(_this) {
     return function() {
       var _k, _len2, _ref2, _results;
-      _this.$width = _this.openWidth;
-      _this.$height = _this.openHeight;
+      _this.$width = _this.$openWidth;
+      _this.$height = _this.$openHeight;
       _this.$opacity = 1;
       _ref2 = _this.slots.children;
       _results = [];
@@ -2279,8 +2292,8 @@ new window.SUITE.ModuleBuilder("expander").extend("box").addProperty("closedWidt
     };
   })(this));
 }).setInitializer(function() {
-  this.openWidth = this.$width;
-  this.openHeight = this.$height;
+  this.$width = this.$closedWidth;
+  this.$height = this.$closedHeight;
   return this._renderedSlots = false;
 }).setRenderer(function() {
   var div;
@@ -2290,8 +2303,8 @@ new window.SUITE.ModuleBuilder("expander").extend("box").addProperty("closedWidt
     wait(0, (function(_this) {
       return function() {
         var slot, _i, _j, _len, _len1, _ref, _ref1, _results;
-        _this.$width = _this.openWidth;
-        _this.$height = _this.openHeight;
+        _this.$width = _this.$openWidth;
+        _this.$height = _this.$openHeight;
         _this.$opacity = 1;
         _ref = _this.slots.children;
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -2319,8 +2332,8 @@ new window.SUITE.ModuleBuilder("expander").extend("box").addProperty("closedWidt
     });
   }
   if (this.expanded) {
-    this.openWidth = this.$width;
-    return this.openHeight = this.$height;
+    this.$openWidth = this.$width;
+    return this.$openHeight = this.$height;
   } else {
     this.$width = this.$closedWidth;
     return this.$height = this.$closedHeight;

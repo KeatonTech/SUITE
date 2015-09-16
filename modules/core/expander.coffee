@@ -2,15 +2,8 @@
 new window.SUITE.ModuleBuilder("expander")
   .extend("box")
 
-  # The expander must have no area by default, so either closedWidth or closedHeight must
-  # be equal to zero.
-  .addProperty "closedWidth", [SUITE.PrimitiveType.Number], 0, (val)->
-    if val > 0 and @$closedHeight > 0 then @$closedWidth = 0
-  .addProperty "closedHeight", [SUITE.PrimitiveType.Number], 0, (val)->
-    if val > 0 and @$closedWidth > 0 then @$closedHeight = 0
 
-  # How long it takes to expand
-  .addProperty "duration", [SUITE.PrimitiveType.Number], 200
+  # RUNTIME PROPERTIES ======================================================================
 
   # This can be modified to open and close the box. Open() and Close() also work
   .addProperty "expanded", [SUITE.PrimitiveType.Boolean], false, (val, old)->
@@ -18,20 +11,39 @@ new window.SUITE.ModuleBuilder("expander")
     if val then @open()
     else @close()
 
+  # The expander must have no area by default, so either closedWidth or closedHeight must
+  # be equal to zero.
+  .addProperty "closedWidth", [SUITE.PrimitiveType.Number], 0, (val)->
+    if val > 0 and @$closedHeight > 0 then @$closedWidth = 0
+    if !@$expanded then @$width = val
+  .addProperty "closedHeight", [SUITE.PrimitiveType.Number], 0, (val)->
+    if val > 0 and @$closedWidth > 0 then @$closedHeight = 0
+    if !@$expanded then @$height = val
+
+  .addProperty "openWidth", [SUITE.PrimitiveType.Number], 0, (val)->
+    if @$expanded then @$width = val
+  .addProperty "openHeight", [SUITE.PrimitiveType.Number], 0, (val)->
+    if @$expanded then @$height = val
+
+  # How long it takes to expand
+  .addProperty "duration", [SUITE.PrimitiveType.Number], 200
+
+
+  # ANIMATION ===============================================================================
+
   # This is where the magic happens
   .addMethod "open", ()->
     @setPropertyWithoutSetter "expanded", true
 
-    if !@_renderedSlots
+    if @rootElement.children.length < 1
       @appendElement(@renderSlot slot) for slot in @slots.children
-      @_renderedSlots = true
 
     slot.resize(@size) for slot in @slots.children
     @$opacity = 0
 
     SUITE.AnimateChanges @$duration, ()=>
-      @$width = @openWidth
-      @$height = @openHeight
+      @$width = @$openWidth
+      @$height = @$openHeight
       @$opacity = 1
       slot.resize(@size) for slot in @slots.children
 
@@ -50,10 +62,13 @@ new window.SUITE.ModuleBuilder("expander")
     #wait @$duration, ()=>
     #  slot.unrender() for slot in @slots.children
 
+
+  # SUITE FUNCTIONS =========================================================================
+
   # Normal module stuff
   .setInitializer ()->
-    @openWidth = @$width
-    @openHeight = @$height
+    @$width = @$closedWidth
+    @$height = @$closedHeight
     @_renderedSlots = false
 
   .setRenderer ()->
@@ -62,8 +77,8 @@ new window.SUITE.ModuleBuilder("expander")
 
     if @$expanded
       wait 0, ()=>
-        @$width = @openWidth
-        @$height = @openHeight
+        @$width = @$openWidth
+        @$height = @$openHeight
         @$opacity = 1
         slot.resize(@size) for slot in @slots.children
         div.appendChild(@renderSlot slot) for slot in @slots.children
@@ -76,8 +91,8 @@ new window.SUITE.ModuleBuilder("expander")
     else
       @super({width: @$closedWidth, height: @$closedHeight})
     if @expanded
-      @openWidth = @$width
-      @openHeight = @$height
+      @$openWidth = @$width
+      @$openHeight = @$height
     else
       @$width = @$closedWidth
       @$height = @$closedHeight
