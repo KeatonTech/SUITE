@@ -4,3 +4,4 @@
 #@prepros-append ./list.coffee
 #@prepros-append ./list-item.coffee
 #@prepros-append ./html-list.coffee
+#@prepros-append ./hierarchical-navigation.coffee

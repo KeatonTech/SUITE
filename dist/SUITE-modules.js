@@ -359,3 +359,96 @@
   }).register();
 
 }).call(this);
+(function() {
+  new window.SUITE.ModuleBuilder("hierarchical-navigation").extend("absolute-element").addSlot("pages", true).setInitializer(function() {
+    if (this.slots.pages.length === 0) {
+      throw new Error("<hierarchical-navigation> must have default page.");
+    }
+    this._pageStack = [this.slots.pages[0]];
+    this._pageIndex = 0;
+    this._animating = false;
+    return this._loading = false;
+  }).addProperty("generatePage", [SUITE.PrimitiveType.Function], function() {
+    throw new Error("Must override $generatePage on <hierarchical-navigation>");
+  }).addMethod("push", function(pageData) {
+    var component;
+    component = $generatePage(pageData, this._pushComponent);
+    if (component == null) {
+      return this._startLoading();
+    } else {
+      return this._pushComponent(component);
+    }
+  }).addMethod("pop", function() {
+    return this._animateTo(this._pageIndex - 1, function() {
+      return this._pageStack.pop();
+    });
+  }).addMethod("switchTo", function(i) {
+    return this._animateTo(i);
+  }).addMethod("_pushComponent", function(component) {
+    if (component == null) {
+      return;
+    }
+    if (!(component instanceof SUITE.Component) || !(component instanceof SUITE.Template)) {
+      return;
+    }
+    this._finishLoading();
+    this._pageStack.push(component);
+    return this._animateTo(this._pageStack.length - 1);
+  }).addProperty("duration", [SUITE.PrimitiveType.Number], 200).addMethod("_animateTo", function(index, callback) {
+    var currentPage, goRight, newPage, newPageElement;
+    if (index >= this._pageStack.length || index < 0) {
+      throw new Error("<hierarchical-navigation> Page index " + index + " out of bounds.");
+    }
+    if (this._animating) {
+      return;
+    }
+    this._animating = true;
+    goRight = index > this._pageIndex;
+    newPage = this.slots.pages[index];
+    newPage.$x = goRight ? this.$width : -newPage.$width;
+    this.appendElement(newPageElement = newPage.render());
+    currentPage = this.slots.pages[this._pageIndex];
+    SUITE.AnimateChanges(this.$duration, (function(_this) {
+      return function() {
+        currentPage.$x = goRight ? -currentPage.$width : _this.$width;
+        return newPage.$x = 0;
+      };
+    })(this));
+    return wait(this.$duration, (function(_this) {
+      return function() {
+        currentPage.unrender();
+        _this.setElement("currentPage", newPageElement);
+        _this._pageIndex = index;
+        _this.resize();
+        if (callback) {
+          callback(true);
+        }
+        return _this._animating = false;
+      };
+    })(this));
+  }).setRenderer(function() {
+    var div, pageElement;
+    div = this["super"]();
+    pageElement = this.slots.pages[this._pageIndex].render();
+    this.setElement("currentPage", pageElement);
+    this.appendElement(pageElement);
+    return div;
+  }).addMethod("_startLoading", function() {
+    if (!this._loading) {
+      this._loading = true;
+      return this.dispatchEvent("startLoading");
+    }
+  }).addMethod("_finishLoading", function() {
+    if (this._loading) {
+      this._loading = false;
+      return this.dispatchEvent("finishLoading");
+    }
+  }).setOnResize(function(size) {
+    var page;
+    page = this.slots.pages[this._pageIndex];
+    page.resize(size);
+    this.$width = page.$width;
+    return this.$height = page.$height;
+  }).register();
+
+}).call(this);
