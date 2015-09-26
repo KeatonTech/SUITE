@@ -383,7 +383,6 @@
     if (this.slots.pages.length === 0) {
       throw new Error("<hierarchical-navigation> must have default page.");
     }
-    this._pageStack = [this.slots.pages[0]];
     this._pageIndex = 0;
     this._animating = false;
     return this._loading = false;
@@ -401,7 +400,7 @@
     this.dispatchEvent("onPop");
     return this._animateTo(this._pageIndex - 1, false, (function(_this) {
       return function() {
-        return _this._pageStack.pop();
+        return _this.slots.pages.pop();
       };
     })(this));
   }).addMethod("switchTo", function(i) {
@@ -414,15 +413,14 @@
       return;
     }
     this._finishLoading();
-    this._pageStack.push(component);
     if (component instanceof SUITE.Template) {
       component = component._component;
     }
     this.slots.pages.push(component);
-    return this._animateTo(this._pageStack.length - 1, true);
+    return this._animateTo(this.slots.pages.length - 1, true);
   }).addProperty("duration", [SUITE.PrimitiveType.Number], 200).addMethod("_animateTo", function(index, goRight, callback) {
     var currentPage, newPage, newPageElement;
-    if (index >= this._pageStack.length || index < 0) {
+    if (index >= this.slots.pages.length || index < 0) {
       throw new Error("<hierarchical-navigation> Page index " + index + " out of bounds.");
     }
     if (this._animating) {
@@ -471,14 +469,17 @@
       return this.dispatchEvent("finishLoading");
     }
   }).setOnResize(function(size) {
-    var slot, _i, _len, _ref, _results;
+    var oldX, slot, _i, _len, _ref, _results;
     this.$width = size.width - this.$x;
     this.$height = size.height - this.$y;
     _ref = this.slots.pages;
     _results = [];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       slot = _ref[_i];
-      _results.push(slot.resize(size));
+      oldX = slot.$x;
+      slot.$x = 0;
+      slot.resize(size);
+      _results.push(slot.$x = oldX);
     }
     return _results;
   }).register();

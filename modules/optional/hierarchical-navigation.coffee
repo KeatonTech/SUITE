@@ -8,11 +8,10 @@ new window.SUITE.ModuleBuilder("hierarchical-navigation")
   # One component per page
   .addSlot "pages", true
 
-  # Initialize page management variables like @_pageStack
+  # Initialize page management variables
   .setInitializer ()->
     if @slots.pages.length is 0
       throw new Error "<hierarchical-navigation> must have default page."
-    @_pageStack = [@slots.pages[0]]
     @_pageIndex = 0
     @_animating = false
     @_loading = false
@@ -32,7 +31,7 @@ new window.SUITE.ModuleBuilder("hierarchical-navigation")
   # Move up the stack
   .addMethod "pop", ()->
     @dispatchEvent "onPop"
-    @_animateTo @_pageIndex-1, false, ()=> @_pageStack.pop()
+    @_animateTo @_pageIndex-1, false, ()=> @slots.pages.pop()
 
   # Move to a specific page
   .addMethod "switchTo", (i)-> @_animateTo i, i < @_pageIndex
@@ -44,12 +43,11 @@ new window.SUITE.ModuleBuilder("hierarchical-navigation")
       return
 
     @_finishLoading()
-    @_pageStack.push component
 
     if component instanceof SUITE.Template then component = component._component
     @slots.pages.push component
 
-    @_animateTo @_pageStack.length-1, true
+    @_animateTo @slots.pages.length-1, true
 
 
   # RENDERING & ANIMATION ===================================================================
@@ -57,7 +55,7 @@ new window.SUITE.ModuleBuilder("hierarchical-navigation")
   .addProperty "duration", [SUITE.PrimitiveType.Number], 200
 
   .addMethod "_animateTo", (index, goRight, callback)->
-    if index >= @_pageStack.length or index < 0
+    if index >= @slots.pages.length or index < 0
       throw new Error "<hierarchical-navigation> Page index #{index} out of bounds."
 
     if @_animating then return
@@ -112,6 +110,10 @@ new window.SUITE.ModuleBuilder("hierarchical-navigation")
   .setOnResize (size)->
     @$width = size.width - @$x
     @$height = size.height - @$y
-    slot.resize(size) for slot in @slots.pages
+    for slot in @slots.pages
+      oldX = slot.$x
+      slot.$x = 0
+      slot.resize(size)
+      slot.$x = oldX
 
   .register()
