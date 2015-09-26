@@ -28,6 +28,8 @@ class window.SUITE.Expression extends window.SUITE.Global
     for g in @globals
       g.addFunctionDependency @update.bind this
 
+    @update()
+
   update: ()->
     values = (g.value for g in @globals)
     output = @func.apply this, values

@@ -1252,6 +1252,9 @@ window.SUITE.Component = (function() {
 
   Component.prototype.fillSlot = function(slotName, component) {
     var index, slot_class;
+    if (component == null) {
+      return;
+    }
     if ((slot_class = this._module.slots[slotName]) == null) {
       return false;
     }
@@ -1693,6 +1696,7 @@ window.SUITE.Expression = (function(_super) {
       g = _ref[_j];
       g.addFunctionDependency(this.update.bind(this));
     }
+    this.update();
   }
 
   Expression.prototype.update = function() {
@@ -1959,6 +1963,7 @@ window.SUITE._parseTemplateInternal = function(json) {
         }
         slot_name = Object.keys(component._module.slots)[0];
         if (val instanceof SUITE.Template) {
+          val.parent = template;
           component.fillSlot(slot_name, val);
         } else {
           component.fillSlot(slot_name, build_recursive(name, val, template));
@@ -1977,6 +1982,9 @@ window.SUITE._parseTemplateInternal = function(json) {
           component[name] = val;
         }
       } else if (name.length > 1 && name[0] === "o" && name[1] === "n") {
+        if ((val == null) || !(val instanceof Function)) {
+          continue;
+        }
         component.addHandler(name, val.bind(template));
       } else if (name[0] === "@") {
         switch (name) {
@@ -2003,6 +2011,7 @@ window.SUITE._parseTemplateInternal = function(json) {
         for (_j = 0, _len1 = _ref3.length; _j < _len1; _j++) {
           _ref4 = _ref3[_j], slot_selector = _ref4[0], slot_properties = _ref4[1];
           if (slot_properties instanceof SUITE.Template) {
+            slot_properties.parent = template;
             component.fillSlot(name, slot_properties);
           } else {
             component.fillSlot(name, build_recursive(slot_selector, slot_properties, template));

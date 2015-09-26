@@ -25,12 +25,14 @@ new window.SUITE.ModuleBuilder("hierarchical-navigation")
 
   # Run $generatePage and add the returned component to the stack
   .addMethod "push", (pageData)->
-    component = $generatePage pageData, @_pushComponent
+    component = @$generatePage pageData, @_pushComponent
     if !component? then @_startLoading()
     else @_pushComponent component
 
   # Move up the stack
-  .addMethod "pop", ()-> @_animateTo @_pageIndex-1, ()-> @_pageStack.pop()
+  .addMethod "pop", ()->
+    @dispatchEvent "onPop"
+    @_animateTo @_pageIndex-1, ()=> @_pageStack.pop()
 
   # Move to a specific page
   .addMethod "switchTo", (i)-> @_animateTo i
@@ -38,11 +40,15 @@ new window.SUITE.ModuleBuilder("hierarchical-navigation")
   # Internal method, runs on result of $generatePage
   .addMethod "_pushComponent", (component)->
     if !component? then return
-    if !(component instanceof SUITE.Component) or !(component instanceof SUITE.Template)
+    if !(component instanceof SUITE.Component) and !(component instanceof SUITE.Template)
       return
 
     @_finishLoading()
     @_pageStack.push component
+
+    if component instanceof SUITE.Template then component = component._component
+    @slots.pages.push component
+
     @_animateTo @_pageStack.length-1
 
 
@@ -61,23 +67,24 @@ new window.SUITE.ModuleBuilder("hierarchical-navigation")
     newPage = @slots.pages[index]
     newPage.$x = if goRight then @$width else -newPage.$width
     @appendElement newPageElement = newPage.render()
+    newPage.resize(@size)
 
     currentPage = @slots.pages[@_pageIndex]
     SUITE.AnimateChanges @$duration, ()=>
       currentPage.$x = if goRight then -currentPage.$width else @$width
       newPage.$x = 0
 
-    wait @$duration, ()=>
+    wait @$duration * 1.5 + 100, ()=>
       currentPage.unrender()
       @setElement "currentPage", newPageElement
       @_pageIndex = index
-      @resize()
       if callback then callback(true)
       @_animating = false
 
 
   .setRenderer ()->
     div = @super()
+    div.style.overflow = "hidden"
 
     pageElement = @slots.pages[@_pageIndex].render()
     @setElement "currentPage", pageElement
@@ -102,9 +109,8 @@ new window.SUITE.ModuleBuilder("hierarchical-navigation")
   # SIZING ==================================================================================
 
   .setOnResize (size)->
-    page = @slots.pages[@_pageIndex]
-    page.resize(size)
-    @$width = page.$width
-    @$height = page.$height
+    @$width = size.width - @$x
+    @$height = size.height - @$y
+    slot.resize(size) for slot in @slots.pages
 
   .register()

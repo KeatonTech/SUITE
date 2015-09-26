@@ -78,6 +78,7 @@ window.SUITE._parseTemplateInternal = (json)->
           throw new Error "Cannot add children on the top level: Module has multiple slots"
         slot_name = Object.keys(component._module.slots)[0]
         if val instanceof SUITE.Template
+          val.parent = template
           component.fillSlot slot_name, val
         else
           component.fillSlot slot_name, build_recursive(name, val, template)
@@ -99,6 +100,7 @@ window.SUITE._parseTemplateInternal = (json)->
 
       # Handlers
       else if name.length > 1 and name[0] == "o" and name[1] == "n"
+        if !val? or !(val instanceof Function) then continue
         component.addHandler name, val.bind(template)
 
       # Template meta-programming
@@ -121,6 +123,7 @@ window.SUITE._parseTemplateInternal = (json)->
 
         for [slot_selector, slot_properties] in iterate_properties val
           if slot_properties instanceof SUITE.Template
+            slot_properties.parent = template
             component.fillSlot name, slot_properties
           else
             component.fillSlot name, build_recursive slot_selector, slot_properties, template

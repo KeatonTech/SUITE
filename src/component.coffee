@@ -148,6 +148,7 @@ class window.SUITE.Component
 
   # Fills a slot with another component
   fillSlot: (slotName, component)->
+    if !component? then return
     if !(slot_class = @_module.slots[slotName])? then return false
     component = @_prepareComponentForSlot slotName, component
     if !component? then return -1

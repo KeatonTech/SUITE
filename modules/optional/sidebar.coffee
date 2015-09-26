@@ -19,6 +19,11 @@ new window.SUITE.ModuleBuilder("sidebar-layout")
     if val then @show()
     else @hide()
 
+  .setInitializer ()-> @_rendered = false
+
+  .addMethod "toggle", ()->
+    if @$shown then @hide() else @show()
+
   # Internal function to update the layout of the stack
   .addMethod "show", ()->
 
@@ -26,12 +31,16 @@ new window.SUITE.ModuleBuilder("sidebar-layout")
     if !@$shown then return @$shown = true
 
     # Render the content
-    @appendElement @setElement "content_div", @renderSlot(@slots.child)
-    @slots.child.$minHeight = 0
-    @slots.child.$maxHeight = 99999
-    @slots.child.resize({width: @$childWidth, height: @$containerHeight})
-    @slots.child.dispatchEvent "onResize"
-    @$position = -@slots.child.$width
+    if !@_rendered
+      @appendElement @setElement "content_div", @renderSlot(@slots.child)
+      @slots.child.$minHeight = 0
+      @slots.child.$maxHeight = 99999
+      @slots.child.resize({width: @$childWidth, height: @$containerHeight})
+      @slots.child.dispatchEvent "onResize"
+      @$position = -@slots.child.$width
+      @_rendered = true
+    else
+      @getElement("content_div").style.visibility = "visible"
 
     # Animate in, after making sure the CSS changes have propogated
     wait 5, ()=>
@@ -39,7 +48,7 @@ new window.SUITE.ModuleBuilder("sidebar-layout")
         @$position = 0
 
         # Let everybody know the sidebar is coming in
-        @dispatchEvent "onShow"
+        @dispatchEvent "onOpen"
 
   .addMethod "hide", ()->
 
@@ -51,11 +60,15 @@ new window.SUITE.ModuleBuilder("sidebar-layout")
       @$position = -@$childWidth
 
       # Let everybody know the sidebar is going away
-      @dispatchEvent "onHide"
+      @dispatchEvent "onClose"
+
 
     wait @$slideTime + 10, ()=>
+      ### It's unclear this helps at all
       @removeElement "content_div"
       @slots.child.unrender()
+      ###
+      @getElement("content_div").style.visibility = "hidden"
 
   .addStyle "sidebar",
     left: ()-> if @$pinLeft then @$position
@@ -70,6 +83,8 @@ new window.SUITE.ModuleBuilder("sidebar-layout")
     if @$shown then wait 1, @show()
     @applyStyle div, "sidebar"
     return div
+
+  .addEventHandler "onHide", ()-> @_rendered = false
 
   .setOnResize (size)->
     @super(size)

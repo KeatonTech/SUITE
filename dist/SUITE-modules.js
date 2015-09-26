@@ -92,24 +92,37 @@
     } else {
       return this.hide();
     }
+  }).setInitializer(function() {
+    return this._rendered = false;
+  }).addMethod("toggle", function() {
+    if (this.$shown) {
+      return this.hide();
+    } else {
+      return this.show();
+    }
   }).addMethod("show", function() {
     if (!this.$shown) {
       return this.$shown = true;
     }
-    this.appendElement(this.setElement("content_div", this.renderSlot(this.slots.child)));
-    this.slots.child.$minHeight = 0;
-    this.slots.child.$maxHeight = 99999;
-    this.slots.child.resize({
-      width: this.$childWidth,
-      height: this.$containerHeight
-    });
-    this.slots.child.dispatchEvent("onResize");
-    this.$position = -this.slots.child.$width;
+    if (!this._rendered) {
+      this.appendElement(this.setElement("content_div", this.renderSlot(this.slots.child)));
+      this.slots.child.$minHeight = 0;
+      this.slots.child.$maxHeight = 99999;
+      this.slots.child.resize({
+        width: this.$childWidth,
+        height: this.$containerHeight
+      });
+      this.slots.child.dispatchEvent("onResize");
+      this.$position = -this.slots.child.$width;
+      this._rendered = true;
+    } else {
+      this.getElement("content_div").style.visibility = "visible";
+    }
     return wait(5, (function(_this) {
       return function() {
         return SUITE.AnimateChanges(new SUITE.Transition(_this.$slideTime), function() {
           _this.$position = 0;
-          return _this.dispatchEvent("onShow");
+          return _this.dispatchEvent("onOpen");
         });
       };
     })(this));
@@ -120,13 +133,17 @@
     SUITE.AnimateChanges(new SUITE.Transition(this.$slideTime), (function(_this) {
       return function() {
         _this.$position = -_this.$childWidth;
-        return _this.dispatchEvent("onHide");
+        return _this.dispatchEvent("onClose");
       };
     })(this));
     return wait(this.$slideTime + 10, (function(_this) {
       return function() {
-        _this.removeElement("content_div");
-        return _this.slots.child.unrender();
+
+        /* It's unclear this helps at all
+        @removeElement "content_div"
+        @slots.child.unrender()
+         */
+        return _this.getElement("content_div").style.visibility = "hidden";
       };
     })(this));
   }).addStyle("sidebar", {
@@ -155,6 +172,8 @@
     }
     this.applyStyle(div, "sidebar");
     return div;
+  }).addEventHandler("onHide", function() {
+    return this._rendered = false;
   }).setOnResize(function(size) {
     this["super"](size);
     if (!this.$shown) {
@@ -372,27 +391,34 @@
     throw new Error("Must override $generatePage on <hierarchical-navigation>");
   }).addMethod("push", function(pageData) {
     var component;
-    component = $generatePage(pageData, this._pushComponent);
+    component = this.$generatePage(pageData, this._pushComponent);
     if (component == null) {
       return this._startLoading();
     } else {
       return this._pushComponent(component);
     }
   }).addMethod("pop", function() {
-    return this._animateTo(this._pageIndex - 1, function() {
-      return this._pageStack.pop();
-    });
+    this.dispatchEvent("onPop");
+    return this._animateTo(this._pageIndex - 1, (function(_this) {
+      return function() {
+        return _this._pageStack.pop();
+      };
+    })(this));
   }).addMethod("switchTo", function(i) {
     return this._animateTo(i);
   }).addMethod("_pushComponent", function(component) {
     if (component == null) {
       return;
     }
-    if (!(component instanceof SUITE.Component) || !(component instanceof SUITE.Template)) {
+    if (!(component instanceof SUITE.Component) && !(component instanceof SUITE.Template)) {
       return;
     }
     this._finishLoading();
     this._pageStack.push(component);
+    if (component instanceof SUITE.Template) {
+      component = component._component;
+    }
+    this.slots.pages.push(component);
     return this._animateTo(this._pageStack.length - 1);
   }).addProperty("duration", [SUITE.PrimitiveType.Number], 200).addMethod("_animateTo", function(index, callback) {
     var currentPage, goRight, newPage, newPageElement;
@@ -407,6 +433,7 @@
     newPage = this.slots.pages[index];
     newPage.$x = goRight ? this.$width : -newPage.$width;
     this.appendElement(newPageElement = newPage.render());
+    newPage.resize(this.size);
     currentPage = this.slots.pages[this._pageIndex];
     SUITE.AnimateChanges(this.$duration, (function(_this) {
       return function() {
@@ -414,12 +441,11 @@
         return newPage.$x = 0;
       };
     })(this));
-    return wait(this.$duration, (function(_this) {
+    return wait(this.$duration * 1.5 + 100, (function(_this) {
       return function() {
         currentPage.unrender();
         _this.setElement("currentPage", newPageElement);
         _this._pageIndex = index;
-        _this.resize();
         if (callback) {
           callback(true);
         }
@@ -429,6 +455,7 @@
   }).setRenderer(function() {
     var div, pageElement;
     div = this["super"]();
+    div.style.overflow = "hidden";
     pageElement = this.slots.pages[this._pageIndex].render();
     this.setElement("currentPage", pageElement);
     this.appendElement(pageElement);
@@ -444,11 +471,16 @@
       return this.dispatchEvent("finishLoading");
     }
   }).setOnResize(function(size) {
-    var page;
-    page = this.slots.pages[this._pageIndex];
-    page.resize(size);
-    this.$width = page.$width;
-    return this.$height = page.$height;
+    var slot, _i, _len, _ref, _results;
+    this.$width = size.width - this.$x;
+    this.$height = size.height - this.$y;
+    _ref = this.slots.pages;
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      slot = _ref[_i];
+      _results.push(slot.resize(size));
+    }
+    return _results;
   }).register();
 
 }).call(this);
