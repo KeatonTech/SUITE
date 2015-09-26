@@ -32,10 +32,10 @@ new window.SUITE.ModuleBuilder("hierarchical-navigation")
   # Move up the stack
   .addMethod "pop", ()->
     @dispatchEvent "onPop"
-    @_animateTo @_pageIndex-1, ()=> @_pageStack.pop()
+    @_animateTo @_pageIndex-1, false, ()=> @_pageStack.pop()
 
   # Move to a specific page
-  .addMethod "switchTo", (i)-> @_animateTo i
+  .addMethod "switchTo", (i)-> @_animateTo i, i < @_pageIndex
 
   # Internal method, runs on result of $generatePage
   .addMethod "_pushComponent", (component)->
@@ -49,37 +49,39 @@ new window.SUITE.ModuleBuilder("hierarchical-navigation")
     if component instanceof SUITE.Template then component = component._component
     @slots.pages.push component
 
-    @_animateTo @_pageStack.length-1
+    @_animateTo @_pageStack.length-1, true
 
 
   # RENDERING & ANIMATION ===================================================================
 
   .addProperty "duration", [SUITE.PrimitiveType.Number], 200
 
-  .addMethod "_animateTo", (index, callback)->
+  .addMethod "_animateTo", (index, goRight, callback)->
     if index >= @_pageStack.length or index < 0
       throw new Error "<hierarchical-navigation> Page index #{index} out of bounds."
 
     if @_animating then return
     @_animating = true
 
-    goRight = index > @_pageIndex
     newPage = @slots.pages[index]
+    newPage.$x = 0
+    newPage.resize(@size)
     newPage.$x = if goRight then @$width else -newPage.$width
     @appendElement newPageElement = newPage.render()
-    newPage.resize(@size)
 
     currentPage = @slots.pages[@_pageIndex]
     SUITE.AnimateChanges @$duration, ()=>
       currentPage.$x = if goRight then -currentPage.$width else @$width
       newPage.$x = 0
 
-    wait @$duration * 1.5 + 100, ()=>
-      currentPage.unrender()
-      @setElement "currentPage", newPageElement
+    wait @$duration, ()=>
       @_pageIndex = index
       if callback then callback(true)
       @_animating = false
+
+      # Give the animation some extra time to complete
+      wait @$duration, ()=>
+        currentPage.unrender()
 
 
   .setRenderer ()->
@@ -87,7 +89,6 @@ new window.SUITE.ModuleBuilder("hierarchical-navigation")
     div.style.overflow = "hidden"
 
     pageElement = @slots.pages[@_pageIndex].render()
-    @setElement "currentPage", pageElement
     @appendElement pageElement
 
     return div

@@ -399,13 +399,13 @@
     }
   }).addMethod("pop", function() {
     this.dispatchEvent("onPop");
-    return this._animateTo(this._pageIndex - 1, (function(_this) {
+    return this._animateTo(this._pageIndex - 1, false, (function(_this) {
       return function() {
         return _this._pageStack.pop();
       };
     })(this));
   }).addMethod("switchTo", function(i) {
-    return this._animateTo(i);
+    return this._animateTo(i, i < this._pageIndex);
   }).addMethod("_pushComponent", function(component) {
     if (component == null) {
       return;
@@ -419,9 +419,9 @@
       component = component._component;
     }
     this.slots.pages.push(component);
-    return this._animateTo(this._pageStack.length - 1);
-  }).addProperty("duration", [SUITE.PrimitiveType.Number], 200).addMethod("_animateTo", function(index, callback) {
-    var currentPage, goRight, newPage, newPageElement;
+    return this._animateTo(this._pageStack.length - 1, true);
+  }).addProperty("duration", [SUITE.PrimitiveType.Number], 200).addMethod("_animateTo", function(index, goRight, callback) {
+    var currentPage, newPage, newPageElement;
     if (index >= this._pageStack.length || index < 0) {
       throw new Error("<hierarchical-navigation> Page index " + index + " out of bounds.");
     }
@@ -429,11 +429,11 @@
       return;
     }
     this._animating = true;
-    goRight = index > this._pageIndex;
     newPage = this.slots.pages[index];
+    newPage.$x = 0;
+    newPage.resize(this.size);
     newPage.$x = goRight ? this.$width : -newPage.$width;
     this.appendElement(newPageElement = newPage.render());
-    newPage.resize(this.size);
     currentPage = this.slots.pages[this._pageIndex];
     SUITE.AnimateChanges(this.$duration, (function(_this) {
       return function() {
@@ -441,15 +441,16 @@
         return newPage.$x = 0;
       };
     })(this));
-    return wait(this.$duration * 1.5 + 100, (function(_this) {
+    return wait(this.$duration, (function(_this) {
       return function() {
-        currentPage.unrender();
-        _this.setElement("currentPage", newPageElement);
         _this._pageIndex = index;
         if (callback) {
           callback(true);
         }
-        return _this._animating = false;
+        _this._animating = false;
+        return wait(_this.$duration, function() {
+          return currentPage.unrender();
+        });
       };
     })(this));
   }).setRenderer(function() {
@@ -457,7 +458,6 @@
     div = this["super"]();
     div.style.overflow = "hidden";
     pageElement = this.slots.pages[this._pageIndex].render();
-    this.setElement("currentPage", pageElement);
     this.appendElement(pageElement);
     return div;
   }).addMethod("_startLoading", function() {
