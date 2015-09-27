@@ -113,7 +113,7 @@ new window.SUITE.ModuleBuilder("hierarchical-navigation")
     for slot in @slots.pages
       oldX = slot.$x
       slot.$x = 0
-      slot.resize(size)
+      slot.resize(@size)
       slot.$x = oldX
 
   .register()

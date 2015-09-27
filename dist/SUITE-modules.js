@@ -478,7 +478,7 @@
       slot = _ref[_i];
       oldX = slot.$x;
       slot.$x = 0;
-      slot.resize(size);
+      slot.resize(this.size);
       _results.push(slot.$x = oldX);
     }
     return _results;

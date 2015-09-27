@@ -2538,13 +2538,14 @@ new window.SUITE.ModuleBuilder("column").extend("box").addProperty("justify", [S
 }).addProperty("spacing", [SUITE.PrimitiveType.Number], 0, function() {
   return this._relayout();
 }).addMethod("_relayout", function() {
-  var child, spacing, stack_height, stack_width, total_height, _i, _j, _len, _len1, _ref, _ref1;
+  var child, pull_height, spacing, stack_height, stack_width, total_height, total_spacing, _i, _j, _len, _len1, _ref, _ref1, _ref2;
   if (this._layoutInProgress) {
     return;
   }
   this._layoutInProgress = true;
   stack_width = this._baseSize.width;
   stack_height = 0;
+  total_spacing = 0;
   _ref = this.slots.children;
   for (_i = 0, _len = _ref.length; _i < _len; _i++) {
     child = _ref[_i];
@@ -2554,21 +2555,24 @@ new window.SUITE.ModuleBuilder("column").extend("box").addProperty("justify", [S
     if ((child.$expanded != null) && !child.$expanded) {
       continue;
     }
+    total_spacing += child.$columnSpacing || this.$spacing;
     stack_width = Math.max(child.$width, stack_width);
     if (this._hasAutoHeight && !child._colAutoHeight) {
       stack_height += child.$height;
     }
   }
   this.$width = stack_width;
+  pull_height = this._baseSize.height || ((_ref1 = this._.parent) != null ? _ref1.$height : void 0) || this.$height;
+  pull_height -= total_spacing - this.$spacing;
   total_height = 0;
-  _ref1 = this.slots.children;
-  for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-    child = _ref1[_j];
+  _ref2 = this.slots.children;
+  for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
+    child = _ref2[_j];
     if (child._colAutoWidth) {
       child.$width = stack_width;
     }
     if (child._colAutoHeight) {
-      child.$height = this.$height - stack_height;
+      child.$height = pull_height - stack_height - spacing;
     }
     spacing = child.$columnSpacing != null ? child.$columnSpacing : this.$spacing;
     child.$x = (this.$width - child.$width) * this.$justify;
@@ -2580,6 +2584,15 @@ new window.SUITE.ModuleBuilder("column").extend("box").addProperty("justify", [S
 }).setInitializer(function() {
   var child, _i, _len, _ref, _results;
   this._baseSize = this.size;
+  if (this.$height === "auto") {
+    this._baseSize.height = void 0;
+    this.$height = 0;
+    this._.parent.addHandler("onResize", (function(_this) {
+      return function(size) {
+        return _this._relayout();
+      };
+    })(this));
+  }
   this._hasAutoHeight = false;
   _ref = this.slots.children;
   _results = [];

@@ -16,13 +16,19 @@ new window.SUITE.ModuleBuilder("column")
     # Figure out how wide this stack should be
     stack_width = @_baseSize.width
     stack_height = 0
+    total_spacing = 0
     for child in @slots.children
       if child._colAutoWidth then continue
       if child.$expanded? and !child.$expanded then continue
+      total_spacing += child.$columnSpacing or @$spacing
       stack_width = Math.max(child.$width, stack_width)
       if @_hasAutoHeight and !child._colAutoHeight
         stack_height += child.$height
     @$width = stack_width
+
+    # For auto height, figure out the target
+    pull_height = @_baseSize.height or @_.parent?.$height or @$height
+    pull_height -= total_spacing - @$spacing
 
     # Position each child in the stack
     total_height = 0
@@ -30,7 +36,7 @@ new window.SUITE.ModuleBuilder("column")
       if child._colAutoWidth
         child.$width = stack_width
       if child._colAutoHeight
-        child.$height = @$height - stack_height
+        child.$height = pull_height - stack_height - spacing
 
       spacing = if child.$columnSpacing? then child.$columnSpacing else @$spacing
       child.$x = (@$width - child.$width) * @$justify
@@ -45,6 +51,10 @@ new window.SUITE.ModuleBuilder("column")
   # Check which children don't have a fixed size
   .setInitializer ()->
     @_baseSize = @size
+    if @$height is "auto"
+      @_baseSize.height = undefined
+      @$height = 0
+      @_.parent.addHandler "onResize", (size)=> @_relayout()
     @_hasAutoHeight = false
     for child in @slots.children
       if child.$width is "auto"
