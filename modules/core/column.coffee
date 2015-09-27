@@ -27,7 +27,7 @@ new window.SUITE.ModuleBuilder("column")
     @$width = stack_width
 
     # For auto height, figure out the target
-    pull_height = @_baseSize.height or @_.parent?.$height or @$height
+    pull_height = if @_baseSize.height? then @$height else @_.parent?.$height
     pull_height -= total_spacing - @$spacing
 
     # Position each child in the stack
@@ -35,13 +35,14 @@ new window.SUITE.ModuleBuilder("column")
     for child in @slots.children
       if child._colAutoWidth
         child.$width = stack_width
+
+      spacing = if child.$columnSpacing? then child.$columnSpacing else @$spacing
       if child._colAutoHeight
         child.$height = pull_height - stack_height - spacing
 
-      spacing = if child.$columnSpacing? then child.$columnSpacing else @$spacing
       child.$x = (@$width - child.$width) * @$justify
       child.$y = total_height - (@$spacing - spacing)
-      total_height += child.$height + spacing
+      total_height += (child.$height or 0) + spacing
 
     # Make this stack the correct height
     @$height = total_height - spacing

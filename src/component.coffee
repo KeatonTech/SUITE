@@ -319,6 +319,8 @@ class window.SUITE.Component
 
     return @_rootElement
 
+  isRendered: ()-> @_rootElement?
+
   rerender: ()->
     if !@_rootElement? then return
     olddom = @_rootElement

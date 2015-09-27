@@ -1552,6 +1552,10 @@ window.SUITE.Component = (function() {
     return this._rootElement;
   };
 
+  Component.prototype.isRendered = function() {
+    return this._rootElement != null;
+  };
+
   Component.prototype.rerender = function() {
     var olddom;
     if (this._rootElement == null) {
@@ -2562,7 +2566,7 @@ new window.SUITE.ModuleBuilder("column").extend("box").addProperty("justify", [S
     }
   }
   this.$width = stack_width;
-  pull_height = this._baseSize.height || ((_ref1 = this._.parent) != null ? _ref1.$height : void 0) || this.$height;
+  pull_height = this._baseSize.height != null ? this.$height : (_ref1 = this._.parent) != null ? _ref1.$height : void 0;
   pull_height -= total_spacing - this.$spacing;
   total_height = 0;
   _ref2 = this.slots.children;
@@ -2571,13 +2575,13 @@ new window.SUITE.ModuleBuilder("column").extend("box").addProperty("justify", [S
     if (child._colAutoWidth) {
       child.$width = stack_width;
     }
+    spacing = child.$columnSpacing != null ? child.$columnSpacing : this.$spacing;
     if (child._colAutoHeight) {
       child.$height = pull_height - stack_height - spacing;
     }
-    spacing = child.$columnSpacing != null ? child.$columnSpacing : this.$spacing;
     child.$x = (this.$width - child.$width) * this.$justify;
     child.$y = total_height - (this.$spacing - spacing);
-    total_height += child.$height + spacing;
+    total_height += (child.$height || 0) + spacing;
   }
   this.$height = total_height - spacing;
   return this._layoutInProgress = false;
