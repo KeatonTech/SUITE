@@ -18,6 +18,7 @@ new window.SUITE.ModuleBuilder("column")
     stack_height = 0
     total_spacing = 0
     for child in @slots.children
+      if !child.$visible then continue
       if child._colAutoWidth then continue
       if child.$expanded? and !child.$expanded then continue
       total_spacing += child.$columnSpacing or @$spacing
@@ -33,6 +34,7 @@ new window.SUITE.ModuleBuilder("column")
     # Position each child in the stack
     total_height = 0
     for child in @slots.children
+      if !child.$visible then continue
       if child._colAutoWidth
         child.$width = stack_width
 
@@ -75,5 +77,7 @@ new window.SUITE.ModuleBuilder("column")
   # Watch for this component or any of its children to resize
   .addEventHandler "onResize", (size)-> @_relayout()
   .addSlotEventHandler "children", "onResize", (size)-> @_relayout()
+  .addSlotEventHandler "children", "onHide", (size)-> @_relayout()
+  .addSlotEventHandler "children", "onShow", (size)-> @_relayout()
 
   .register()

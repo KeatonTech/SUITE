@@ -16,6 +16,7 @@ new window.SUITE.ModuleBuilder("row")
     # Figure out how wide this stack should be
     stack_height = 0
     for child in @slots.children
+      if !child.$visible then continue
       height = child.$height
       if child.$rowPadding? then height += child.$rowPadding * 2
       stack_height = Math.max(height, stack_height)
@@ -24,6 +25,7 @@ new window.SUITE.ModuleBuilder("row")
     # Position each child in the stack
     total_width = 0
     for child in @slots.children
+      if !child.$visible then continue
       child.$x = total_width
       height = child.$height
       if child.$rowPadding? then height += child.$rowPadding * 2
@@ -43,5 +45,7 @@ new window.SUITE.ModuleBuilder("row")
   # Watch for this component or any of its children to resize
   .addEventHandler "onResize", (size)-> @_relayout()
   .addSlotEventHandler "children", "onResize", (size)-> @_relayout()
+  .addSlotEventHandler "children", "onHide", (size)-> @_relayout()
+  .addSlotEventHandler "children", "onShow", (size)-> @_relayout()
 
   .register()

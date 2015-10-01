@@ -732,6 +732,7 @@ window.SUITE.TextMetrics = (function() {
     this.ctx.font = (this.fontWeight != null ? "" + this.fontWeight + " " : void 0) + this.fontSize + "px " + this.font;
     width = this.ctx.measureText(string).width;
     width += (string.length - 1) * this.letterSpacing;
+    width = Math.ceil(width);
     return {
       width: width,
       height: this.fontSize
@@ -2045,7 +2046,16 @@ new window.SUITE.ModuleBuilder("visible-element").addProperty("id", [SUITE.Primi
   return this.setAttrs({
     "class": val
   });
-}).addProperty("visible", [SUITE.PrimitiveType.Boolean], true).addProperty("fill", [SUITE.PrimitiveType.Color]).addProperty("stroke", [SUITE.PrimitiveType.Color]).addProperty("strokeWidth", [SUITE.PrimitiveType.Number]).addProperty("shadow", [SUITE.PrimitiveType.String]).addProperty("cornerRadius", [SUITE.PrimitiveType.Number]).addProperty("z", [SUITE.PrimitiveType.Number]).addProperty("opacity", [SUITE.PrimitiveType.Number]).addProperty("cursor", [SUITE.PrimitiveType.String]).addStyle("styled", {
+}).addProperty("visible", [SUITE.PrimitiveType.Boolean], true, function(val, oldVal) {
+  if (val === oldVal) {
+    return;
+  }
+  if (val) {
+    return this.dispatchEvent("onShow");
+  } else {
+    return this.dispatchEvent("onHide");
+  }
+}).addProperty("fill", [SUITE.PrimitiveType.Color]).addProperty("stroke", [SUITE.PrimitiveType.Color]).addProperty("strokeWidth", [SUITE.PrimitiveType.Number]).addProperty("shadow", [SUITE.PrimitiveType.String]).addProperty("cornerRadius", [SUITE.PrimitiveType.Number]).addProperty("z", [SUITE.PrimitiveType.Number]).addProperty("opacity", [SUITE.PrimitiveType.Number]).addProperty("cursor", [SUITE.PrimitiveType.String]).addStyle("styled", {
   backgroundColor: function() {
     return this.$fill;
   },
@@ -2504,6 +2514,9 @@ new window.SUITE.ModuleBuilder("row").extend("box").removeProperty("maxWidth").r
   _ref = this.slots.children;
   for (_i = 0, _len = _ref.length; _i < _len; _i++) {
     child = _ref[_i];
+    if (!child.$visible) {
+      continue;
+    }
     height = child.$height;
     if (child.$rowPadding != null) {
       height += child.$rowPadding * 2;
@@ -2515,6 +2528,9 @@ new window.SUITE.ModuleBuilder("row").extend("box").removeProperty("maxWidth").r
   _ref1 = this.slots.children;
   for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
     child = _ref1[_j];
+    if (!child.$visible) {
+      continue;
+    }
     child.$x = total_width;
     height = child.$height;
     if (child.$rowPadding != null) {
@@ -2536,6 +2552,10 @@ new window.SUITE.ModuleBuilder("row").extend("box").removeProperty("maxWidth").r
   return this._relayout();
 }).addSlotEventHandler("children", "onResize", function(size) {
   return this._relayout();
+}).addSlotEventHandler("children", "onHide", function(size) {
+  return this._relayout();
+}).addSlotEventHandler("children", "onShow", function(size) {
+  return this._relayout();
 }).register();
 new window.SUITE.ModuleBuilder("column").extend("box").addProperty("justify", [SUITE.PrimitiveType.Number], 0.5, function() {
   return this._relayout();
@@ -2553,6 +2573,9 @@ new window.SUITE.ModuleBuilder("column").extend("box").addProperty("justify", [S
   _ref = this.slots.children;
   for (_i = 0, _len = _ref.length; _i < _len; _i++) {
     child = _ref[_i];
+    if (!child.$visible) {
+      continue;
+    }
     if (child._colAutoWidth) {
       continue;
     }
@@ -2572,6 +2595,9 @@ new window.SUITE.ModuleBuilder("column").extend("box").addProperty("justify", [S
   _ref2 = this.slots.children;
   for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
     child = _ref2[_j];
+    if (!child.$visible) {
+      continue;
+    }
     if (child._colAutoWidth) {
       child.$width = stack_width;
     }
@@ -2623,6 +2649,10 @@ new window.SUITE.ModuleBuilder("column").extend("box").addProperty("justify", [S
 }).addEventHandler("onResize", function(size) {
   return this._relayout();
 }).addSlotEventHandler("children", "onResize", function(size) {
+  return this._relayout();
+}).addSlotEventHandler("children", "onHide", function(size) {
+  return this._relayout();
+}).addSlotEventHandler("children", "onShow", function(size) {
   return this._relayout();
 }).register();
 new window.SUITE.ModuleBuilder("text-input").extend("absolute-element").addProperty("value", [SUITE.PrimitiveType.String], void 0, function(val) {

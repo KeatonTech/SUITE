@@ -30,4 +30,5 @@ class window.SUITE.TextMetrics
     @ctx.font = (if @fontWeight? then "#{@fontWeight} ") + @fontSize + "px " + @font
     width = @ctx.measureText(string).width
     width += (string.length - 1) * @letterSpacing
+    width = Math.ceil(width)
     return {width: width, height: @fontSize}

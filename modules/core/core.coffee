@@ -9,7 +9,11 @@ new window.SUITE.ModuleBuilder("visible-element")
 
   # STYLE PROPETIES =========================================================================
 
-  .addProperty "visible", [SUITE.PrimitiveType.Boolean], true
+  .addProperty "visible", [SUITE.PrimitiveType.Boolean], true, (val, oldVal)->
+    if val is oldVal then return
+    if val then @dispatchEvent "onShow"
+    else @dispatchEvent "onHide"
+
   .addProperty "fill", [SUITE.PrimitiveType.Color]
   .addProperty "stroke", [SUITE.PrimitiveType.Color]
   .addProperty "strokeWidth", [SUITE.PrimitiveType.Number]
