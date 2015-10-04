@@ -60,10 +60,10 @@ new window.SUITE.ModuleBuilder("pinned-layout")
   .extend "layout-in-container"
 
   # Centered in the parent by default
-  .addProperty "top", [SUITE.PrimitiveType.Number]
-  .addProperty "left", [SUITE.PrimitiveType.Number]
-  .addProperty "bottom", [SUITE.PrimitiveType.Number]
-  .addProperty "right", [SUITE.PrimitiveType.Number]
+  .addProperty "top", [SUITE.PrimitiveType.Number], undefined, (v)-> @resize(@_parentSize)
+  .addProperty "left", [SUITE.PrimitiveType.Number], undefined, (v)-> @resize(@_parentSize)
+  .addProperty "bottom", [SUITE.PrimitiveType.Number], undefined, (v)-> @resize(@_parentSize)
+  .addProperty "right", [SUITE.PrimitiveType.Number], undefined, (v)-> @resize(@_parentSize)
 
   # Pinned style (this is so easy!)
   .addStyle "absolute",
@@ -81,6 +81,7 @@ new window.SUITE.ModuleBuilder("pinned-layout")
 
   .setOnResize (size)->
     @super(size)
+    @_parentSize = size;
     if @$right? and @$left?
       @$containerWidth = size.width - @$right - @$left
     if @$top? and @$bottom?

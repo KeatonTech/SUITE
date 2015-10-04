@@ -19,10 +19,23 @@ new window.SUITE.ModuleBuilder("sidebar-layout")
     if val then @show()
     else @hide()
 
+  # Optimization: Force the sidebar to render immidiately to remove any initial stutter
+  .addProperty "immidiateRender", [SUITE.PrimitiveType.Boolean], false
+
   .setInitializer ()-> @_rendered = false
 
   .addMethod "toggle", ()->
     if @$shown then @hide() else @show()
+
+  # Render the sidebar element offscreen
+  .addMethod "_offscreenRender", ()->
+    @appendElement @setElement "content_div", @renderSlot(@slots.child)
+    @slots.child.$minHeight = 0
+    @slots.child.$maxHeight = 99999
+    @slots.child.resize({width: @$childWidth, height: @$containerHeight})
+    @slots.child.dispatchEvent "onResize"
+    @$position = -@slots.child.$width
+    @_rendered = true
 
   # Internal function to update the layout of the stack
   .addMethod "show", ()->
@@ -32,13 +45,7 @@ new window.SUITE.ModuleBuilder("sidebar-layout")
 
     # Render the content
     if !@_rendered
-      @appendElement @setElement "content_div", @renderSlot(@slots.child)
-      @slots.child.$minHeight = 0
-      @slots.child.$maxHeight = 99999
-      @slots.child.resize({width: @$childWidth, height: @$containerHeight})
-      @slots.child.dispatchEvent "onResize"
-      @$position = -@slots.child.$width
-      @_rendered = true
+      @_offscreenRender()
     else
       @getElement("content_div").style.visibility = "visible"
 
@@ -80,6 +87,7 @@ new window.SUITE.ModuleBuilder("sidebar-layout")
   # Lay out the children
   .setRenderer ()->
     div = @super(false)
+    if @$immidiateRender then @_offscreenRender()
     if @$shown then wait 1, @show()
     @applyStyle div, "sidebar"
     return div

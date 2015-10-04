@@ -343,6 +343,7 @@ class window.SUITE.Component
   resize: (size)->
     if !@_module.onResize? then return
     if !@_initialized then @initialize()
+    if !size? then size = {width: @$width, height: @$height}
     cleanup = @_api._prepare @_module.super, "onResize"
     @_module.onResize.call @_api, size
     cleanup()

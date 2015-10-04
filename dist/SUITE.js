@@ -729,7 +729,7 @@ window.SUITE.TextMetrics = (function() {
 
   TextMetrics.prototype.measure = function(string) {
     var width;
-    this.ctx.font = (this.fontWeight != null ? "" + this.fontWeight + " " : void 0) + this.fontSize + "px " + this.font;
+    this.ctx.font = (this.fontWeight != null ? "" + this.fontWeight + " " : "") + this.fontSize + "px " + this.font;
     width = this.ctx.measureText(string).width;
     width += (string.length - 1) * this.letterSpacing;
     width = Math.ceil(width);
@@ -1597,6 +1597,12 @@ window.SUITE.Component = (function() {
     if (!this._initialized) {
       this.initialize();
     }
+    if (size == null) {
+      size = {
+        width: this.$width,
+        height: this.$height
+      };
+    }
     cleanup = this._api._prepare(this._module["super"], "onResize");
     this._module.onResize.call(this._api, size);
     return cleanup();
@@ -2235,7 +2241,15 @@ new window.SUITE.ModuleBuilder("float-layout").extend("layout-in-container").add
   return div;
 }).register();
 
-new window.SUITE.ModuleBuilder("pinned-layout").extend("layout-in-container").addProperty("top", [SUITE.PrimitiveType.Number]).addProperty("left", [SUITE.PrimitiveType.Number]).addProperty("bottom", [SUITE.PrimitiveType.Number]).addProperty("right", [SUITE.PrimitiveType.Number]).addStyle("absolute", {
+new window.SUITE.ModuleBuilder("pinned-layout").extend("layout-in-container").addProperty("top", [SUITE.PrimitiveType.Number], void 0, function(v) {
+  return this.resize(this._parentSize);
+}).addProperty("left", [SUITE.PrimitiveType.Number], void 0, function(v) {
+  return this.resize(this._parentSize);
+}).addProperty("bottom", [SUITE.PrimitiveType.Number], void 0, function(v) {
+  return this.resize(this._parentSize);
+}).addProperty("right", [SUITE.PrimitiveType.Number], void 0, function(v) {
+  return this.resize(this._parentSize);
+}).addStyle("absolute", {
   top: function() {
     return this.$top;
   },
@@ -2261,6 +2275,7 @@ new window.SUITE.ModuleBuilder("pinned-layout").extend("layout-in-container").ad
   return div;
 }).setOnResize(function(size) {
   this["super"](size);
+  this._parentSize = size;
   if ((this.$right != null) && (this.$left != null)) {
     this.$containerWidth = size.width - this.$right - this.$left;
   }
