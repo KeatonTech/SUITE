@@ -13,6 +13,9 @@ new window.SUITE.ModuleBuilder("list")
   # When true, inner HTML is wrapped in a table
   .addProperty "isTable", [SUITE.PrimitiveType.Boolean], false
 
+  # Allows the scroll area to extend past the top of the first item
+  .addProperty "topPadding", [SUITE.PrimitiveType.Number], 0
+
   # Similar to the function in <column> but much more limited in that it does not support
   # $justify and does not resize the container based on the children
   .addProperty "totalHeight", [SUITE.PrimitiveType.Number]
@@ -52,6 +55,7 @@ new window.SUITE.ModuleBuilder("list")
 
   .addStyle "listContainerStyle",
     height: ()-> @$totalHeight
+    paddingTop: ()-> @$topPadding
 
   .setInitializer ()->
     @_relayout()

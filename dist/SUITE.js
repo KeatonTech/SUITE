@@ -731,7 +731,7 @@ window.SUITE.TextMetrics = (function() {
     var width;
     this.ctx.font = (this.fontWeight != null ? "" + this.fontWeight + " " : "") + this.fontSize + "px " + this.font;
     width = this.ctx.measureText(string).width;
-    width += (string.length - 1) * this.letterSpacing;
+    width += string.length * this.letterSpacing;
     width = Math.ceil(width);
     return {
       width: width,
@@ -807,6 +807,10 @@ window.SUITE.ModuleAPI = (function() {
     return this._.fillSlot.apply(this._, arguments);
   };
 
+  ModuleAPI.prototype.insertSlotComponent = function() {
+    return this._.insertSlotComponent.apply(this._, arguments);
+  };
+
   ModuleAPI.prototype.removeSlotComponent = function() {
     return this._.removeSlotComponent.apply(this._, arguments);
   };
@@ -821,6 +825,10 @@ window.SUITE.ModuleAPI = (function() {
 
   ModuleAPI.prototype.allSubComponents = function() {
     return this._.allSubComponents.apply(this._, arguments);
+  };
+
+  ModuleAPI.prototype.addHandler = function() {
+    return this._.addHandler.apply(this._, arguments);
   };
 
   ModuleAPI.prototype.addHandlerBinding = function() {
@@ -899,10 +907,12 @@ window.SUITE.ModuleAPI = (function() {
   };
 
   ModuleAPI.prototype._getComponentProperty = function(name, val) {
+    console.log("GET", name, val);
     return this._[name];
   };
 
   ModuleAPI.prototype._setComponentProperty = function(name, val) {
+    console.log("SET", name, val);
     return this._[name] = val;
   };
 
@@ -921,13 +931,14 @@ window.SUITE.ModuleAPI = (function() {
   };
 
   ModuleAPI.prototype.removeElement = function(name_or_element) {
+    var _ref;
     if (typeof name_or_element === "string") {
       name_or_element = this.getElement(name_or_element);
     }
     if (name_or_element == null) {
       return;
     }
-    return name_or_element.parentNode.removeChild(name_or_element);
+    return (_ref = name_or_element.parentNode) != null ? _ref.removeChild(name_or_element) : void 0;
   };
 
   ModuleAPI.prototype.createElement = function(elementName_or_tagName, tagName) {
@@ -1287,8 +1298,8 @@ window.SUITE.Component = (function() {
     return index;
   };
 
-  Component.prototype.insertSlotComponent = function(slotName, index) {
-    var component, slot_class;
+  Component.prototype.insertSlotComponent = function(slotName, index, component) {
+    var slot_class;
     if (((slot_class = this._module.slots[slotName]) == null) || !slot_class.isRepeated) {
       return false;
     }
@@ -2061,7 +2072,7 @@ new window.SUITE.ModuleBuilder("visible-element").addProperty("id", [SUITE.Primi
   } else {
     return this.dispatchEvent("onHide");
   }
-}).addProperty("fill", [SUITE.PrimitiveType.Color]).addProperty("stroke", [SUITE.PrimitiveType.Color]).addProperty("strokeWidth", [SUITE.PrimitiveType.Number]).addProperty("shadow", [SUITE.PrimitiveType.String]).addProperty("cornerRadius", [SUITE.PrimitiveType.Number]).addProperty("z", [SUITE.PrimitiveType.Number]).addProperty("opacity", [SUITE.PrimitiveType.Number]).addProperty("cursor", [SUITE.PrimitiveType.String]).addStyle("styled", {
+}).addProperty("fill", [SUITE.PrimitiveType.Color]).addProperty("stroke", [SUITE.PrimitiveType.Color]).addProperty("strokeWidth", [SUITE.PrimitiveType.Number]).addProperty("shadow", [SUITE.PrimitiveType.String]).addProperty("cornerRadius", [SUITE.PrimitiveType.Number]).addProperty("z", [SUITE.PrimitiveType.Number]).addProperty("opacity", [SUITE.PrimitiveType.Number]).addProperty("cursor", [SUITE.PrimitiveType.String]).addProperty("transform", [SUITE.PrimitiveType.String]).addStyle("styled", {
   backgroundColor: function() {
     return this.$fill;
   },
@@ -2085,6 +2096,15 @@ new window.SUITE.ModuleBuilder("visible-element").addProperty("id", [SUITE.Primi
   },
   cursor: function() {
     return this.$cursor;
+  },
+  transform: function() {
+    return this.$transform;
+  },
+  WebkitTransform: function() {
+    return this.$transform;
+  },
+  MsTransform: function() {
+    return this.$transform;
   },
   display: function() {
     if (!this.$visible) {
@@ -2490,7 +2510,7 @@ new window.SUITE.ModuleBuilder("text").extend("fixed-size-element").addProperty(
   this.updateSize();
   return p;
 }).addMethod("computeSize", function() {
-  return new SUITE.TextMetrics(this).measure(this.$string);
+  return new SUITE.TextMetrics(this).measure(this.$string) + 2;
 }).register();
 new window.SUITE.ModuleBuilder("image").extend("absolute-element").addProperty("url", [SUITE.PrimitiveType.String], "", function(val) {
   var image;
@@ -2566,6 +2586,7 @@ new window.SUITE.ModuleBuilder("row").extend("box").removeProperty("maxWidth").r
 }).addEventHandler("onResize", function(size) {
   return this._relayout();
 }).addSlotEventHandler("children", "onResize", function(size) {
+  console.log("CHILD RESIZED");
   return this._relayout();
 }).addSlotEventHandler("children", "onHide", function(size) {
   return this._relayout();
@@ -2577,7 +2598,7 @@ new window.SUITE.ModuleBuilder("column").extend("box").addProperty("justify", [S
 }).addProperty("spacing", [SUITE.PrimitiveType.Number], 0, function() {
   return this._relayout();
 }).addMethod("_relayout", function() {
-  var child, pull_height, spacing, stack_height, stack_width, total_height, total_spacing, _i, _j, _len, _len1, _ref, _ref1, _ref2;
+  var autospacing, child, pull_height, spacing, stack_height, stack_width, total_height, total_spacing, _i, _j, _len, _len1, _ref, _ref1, _ref2;
   if (this._layoutInProgress) {
     return;
   }
@@ -2618,7 +2639,8 @@ new window.SUITE.ModuleBuilder("column").extend("box").addProperty("justify", [S
     }
     spacing = child.$columnSpacing != null ? child.$columnSpacing : this.$spacing;
     if (child._colAutoHeight) {
-      child.$height = pull_height - stack_height - spacing;
+      autospacing = child.$columnSpacing != null ? this.$spacing - child.$columnSpacing : -spacing;
+      child.$height = pull_height - stack_height + autospacing;
     }
     child.$x = (this.$width - child.$width) * this.$justify;
     child.$y = total_height - (this.$spacing - spacing);
@@ -2680,9 +2702,15 @@ new window.SUITE.ModuleBuilder("text-input").extend("absolute-element").addPrope
     return;
   }
   return this.rootElement.setAttribute("placeholder", val);
+}).addProperty("type", [SUITE.PrimitiveType.String], "text", function(val) {
+  if (this.rootElement == null) {
+    return;
+  }
+  return this.rootElement.setAttribute("type", val);
 }).setRenderer(function() {
   var input;
   input = this["super"]("input");
+  input.setAttribute("type", this.$type || "text");
   if (this.$value != null) {
     input.setAttribute("value", this.$value);
   }
@@ -2697,6 +2725,11 @@ new window.SUITE.ModuleBuilder("text-input").extend("absolute-element").addPrope
       } else {
         return _this.dispatchEvent("onChange", [_this.$value]);
       }
+    };
+  })(this));
+  input.addEventListener("change", (function(_this) {
+    return function(e) {
+      return _this.dispatchEvent("onChanged", [_this.$value]);
     };
   })(this));
   return input;
@@ -2752,4 +2785,36 @@ new window.SUITE.ModuleBuilder("text-area").extend("absolute-element").addProper
     };
   })(this));
   return textarea;
+}).register();
+
+new window.SUITE.ModuleBuilder("checkbox-input").extend("absolute-element").addProperty("value", [SUITE.PrimitiveType.String], void 0, function(val) {
+  if (this.input == null) {
+    return;
+  }
+  return this.input.checked = val != null;
+}).addProperty("label", [SUITE.PrimitiveType.String], "Check this box", function() {
+  if (this.label == null) {
+    return;
+  }
+  return this.label.innerHTML = val;
+}).setRenderer(function() {
+  var container, name;
+  container = this["super"]("p");
+  name = "scb_" + Math.floor(Math.random() * 10000000);
+  this.input = this.createElement("input");
+  this.input.setAttribute("type", "checkbox");
+  this.input.setAttribute("name", name);
+  container.appendChild(this.input);
+  this.input.addEventListener("click", (function(_this) {
+    return function(e) {
+      _this.setPropertyWithoutSetter("value", _this.input.checked);
+      _this.dispatchEvent("onChange", [_this.$value]);
+      return _this.dispatchEvent("onChanged", [_this.$value]);
+    };
+  })(this));
+  this.label = this.createElement("label");
+  this.label.innerHTML = this.$label;
+  this.label.setAttribute("for", name);
+  container.appendChild(this.label);
+  return container;
 }).register();

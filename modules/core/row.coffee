@@ -44,7 +44,9 @@ new window.SUITE.ModuleBuilder("row")
 
   # Watch for this component or any of its children to resize
   .addEventHandler "onResize", (size)-> @_relayout()
-  .addSlotEventHandler "children", "onResize", (size)-> @_relayout()
+  .addSlotEventHandler "children", "onResize", (size)->
+    console.log "CHILD RESIZED"
+    @_relayout()
   .addSlotEventHandler "children", "onHide", (size)-> @_relayout()
   .addSlotEventHandler "children", "onShow", (size)-> @_relayout()
 

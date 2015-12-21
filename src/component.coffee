@@ -171,7 +171,7 @@ class window.SUITE.Component
     return index # 0 for non-repeated slots
 
   # Add to a repeated slot at a specific index
-  insertSlotComponent: (slotName, index)->
+  insertSlotComponent: (slotName, index, component)->
     if !(slot_class = @_module.slots[slotName])? or !slot_class.isRepeated then return false
 
     component = @_prepareComponentForSlot slotName, component

@@ -40,7 +40,10 @@ new window.SUITE.ModuleBuilder("column")
 
       spacing = if child.$columnSpacing? then child.$columnSpacing else @$spacing
       if child._colAutoHeight
-        child.$height = pull_height - stack_height - spacing
+        autospacing = if child.$columnSpacing?
+          @$spacing - child.$columnSpacing
+        else -spacing
+        child.$height = pull_height - stack_height + autospacing
 
       child.$x = (@$width - child.$width) * @$justify
       child.$y = total_height - (@$spacing - spacing)

@@ -23,10 +23,10 @@ new window.SUITE.ModuleBuilder("hierarchical-navigation")
     throw new Error "Must override $generatePage on <hierarchical-navigation>"
 
   # Run $generatePage and add the returned component to the stack
-  .addMethod "push", (pageData)->
-    component = @$generatePage pageData, @_pushComponent
-    if !component? then @_startLoading()
-    else @_pushComponent component
+  .addMethod "push", (pageData, replaceParent = false)->
+    pushFunction = @_pushComponent.bind(this, replaceParent)
+    component = @$generatePage pageData, pushFunction, replaceParent
+    if !component? then @_startLoading(replaceParent)
 
   # Move up the stack
   .addMethod "pop", ()->
@@ -37,7 +37,7 @@ new window.SUITE.ModuleBuilder("hierarchical-navigation")
   .addMethod "switchTo", (i)-> @_animateTo i, i < @_pageIndex
 
   # Internal method, runs on result of $generatePage
-  .addMethod "_pushComponent", (component)->
+  .addMethod "_pushComponent", (replaceParent, component)->
     if !component? then return
     if !(component instanceof SUITE.Component) and !(component instanceof SUITE.Template)
       return
@@ -47,14 +47,17 @@ new window.SUITE.ModuleBuilder("hierarchical-navigation")
     if component instanceof SUITE.Template then component = component._component
     @slots.pages.push component
 
-    @_animateTo @slots.pages.length-1, true
+    @_animateTo @slots.pages.length-1, true, ()=>
+      if replaceParent
+        @slots.pages.splice -2, 1
+        @_pageIndex -= 1
 
 
   # RENDERING & ANIMATION ===================================================================
 
   .addProperty "duration", [SUITE.PrimitiveType.Number], 200
 
-  .addMethod "_animateTo", (index, goRight, callback)->
+  .addMethod "_animateTo", (index, goRight, callback, oncomplete)->
     if index >= @slots.pages.length or index < 0
       throw new Error "<hierarchical-navigation> Page index #{index} out of bounds."
 
@@ -80,6 +83,7 @@ new window.SUITE.ModuleBuilder("hierarchical-navigation")
       # Give the animation some extra time to complete
       wait @$duration, ()=>
         currentPage.unrender()
+        if oncomplete then oncomplete()
 
 
   .setRenderer ()->

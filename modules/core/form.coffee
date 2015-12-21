@@ -10,8 +10,13 @@ new window.SUITE.ModuleBuilder("text-input")
     if !@rootElement? then return
     @rootElement.setAttribute "placeholder", val
 
+  .addProperty "type", [SUITE.PrimitiveType.String], "text", (val)->
+    if !@rootElement? then return
+    @rootElement.setAttribute "type", val
+
   .setRenderer ()->
     input = @super("input")
+    input.setAttribute "type", @$type or "text"
     if @$value? then input.setAttribute "value", @$value
     if @$placeholder? then input.setAttribute "placeholder", @$placeholder
 
@@ -21,6 +26,9 @@ new window.SUITE.ModuleBuilder("text-input")
         @dispatchEvent "onSubmit", [@$value]
       else
         @dispatchEvent "onChange", [@$value]
+
+    input.addEventListener "change", (e)=>
+      @dispatchEvent "onChanged", [@$value]
 
     return input
 
@@ -72,5 +80,42 @@ new window.SUITE.ModuleBuilder("text-area")
         @dispatchEvent "onChange", [@$value]
 
     return textarea
+
+  .register()
+
+
+# Adds <input type='checkbox'>
+new window.SUITE.ModuleBuilder("checkbox-input")
+  .extend "absolute-element"
+
+  .addProperty "value", [SUITE.PrimitiveType.String], undefined, (val)->
+    if !@input? then return
+    @input.checked = val?
+
+  .addProperty "label", [SUITE.PrimitiveType.String], "Check this box", ()->
+    if !@label? then return
+    @label.innerHTML = val
+
+  .setRenderer ()->
+    container = @super("p")
+
+    name = "scb_" + Math.floor(Math.random() * 10000000)
+
+    @input = @createElement "input"
+    @input.setAttribute "type", "checkbox"
+    @input.setAttribute "name", name
+    container.appendChild @input
+
+    @input.addEventListener "click", (e)=>
+      @setPropertyWithoutSetter "value", @input.checked
+      @dispatchEvent "onChange", [@$value]
+      @dispatchEvent "onChanged", [@$value]
+
+    @label = @createElement "label"
+    @label.innerHTML = @$label
+    @label.setAttribute "for", name
+    container.appendChild @label
+
+    return container
 
   .register()

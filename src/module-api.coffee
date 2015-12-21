@@ -26,10 +26,12 @@ class window.SUITE.ModuleAPI
   dispatchEvent: ()-> @_._dispatchEvent.apply @_, arguments
   hasPropertyValue: ()-> @_.hasPropertyValue.apply @_, arguments
   fillSlot: ()-> @_.fillSlot.apply @_, arguments
+  insertSlotComponent: ()-> @_.insertSlotComponent.apply @_, arguments
   removeSlotComponent: ()-> @_.removeSlotComponent.apply @_, arguments
   emptySlot: ()-> @_.emptySlot.apply @_, arguments
   allSlotComponents: ()-> @_.allSlotComponents.apply @_, arguments
   allSubComponents: ()-> @_.allSubComponents.apply @_, arguments
+  addHandler: ()-> @_.addHandler.apply @_, arguments
   addHandlerBinding: ()-> @_._addHandlerBinding.apply @_, arguments
 
 
@@ -104,8 +106,12 @@ class window.SUITE.ModuleAPI
     @_._values[name] = val
 
   # Getter and setter functions
-  _getComponentProperty: (name, val)-> @_[name]
-  _setComponentProperty: (name, val)-> @_[name] = val
+  _getComponentProperty: (name, val)-> 
+    console.log "GET", name, val
+    @_[name]
+  _setComponentProperty: (name, val)->
+    console.log "SET", name, val
+    @_[name] = val
 
   # STORED HTML ELEMENTS ====================================================================
 
@@ -121,7 +127,7 @@ class window.SUITE.ModuleAPI
   removeElement: (name_or_element)->
     if typeof name_or_element is "string" then name_or_element = @getElement name_or_element
     if !name_or_element? then return
-    name_or_element.parentNode.removeChild name_or_element
+    name_or_element.parentNode?.removeChild name_or_element
 
   createElement: (elementName_or_tagName, tagName)->
     if !tagName? then return document.createElement elementName_or_tagName

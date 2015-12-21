@@ -192,7 +192,7 @@
 
 }).call(this);
 (function() {
-  new window.SUITE.ModuleBuilder("list").extend("box").addProperty("scrollMargin", [SUITE.PrimitiveType.Number], 500).addProperty("expandBack", [SUITE.PrimitiveType.Function]).addProperty("expandFront", [SUITE.PrimitiveType.Function]).addProperty("isTable", [SUITE.PrimitiveType.Boolean], false).addProperty("totalHeight", [SUITE.PrimitiveType.Number]).addMethod("_relayout", function() {
+  new window.SUITE.ModuleBuilder("list").extend("box").addProperty("scrollMargin", [SUITE.PrimitiveType.Number], 500).addProperty("expandBack", [SUITE.PrimitiveType.Function]).addProperty("expandFront", [SUITE.PrimitiveType.Function]).addProperty("isTable", [SUITE.PrimitiveType.Boolean], false).addProperty("topPadding", [SUITE.PrimitiveType.Number], 0).addProperty("totalHeight", [SUITE.PrimitiveType.Number]).addMethod("_relayout", function() {
     var child, total_height, _i, _len, _ref;
     total_height = 0;
     _ref = this.slots.children;
@@ -236,6 +236,9 @@
   }).addStyle("listContainerStyle", {
     height: function() {
       return this.$totalHeight;
+    },
+    paddingTop: function() {
+      return this.$topPadding;
     }
   }).setInitializer(function() {
     return this._relayout();
@@ -393,13 +396,15 @@
     return this._loading = false;
   }).addProperty("generatePage", [SUITE.PrimitiveType.Function], function() {
     throw new Error("Must override $generatePage on <hierarchical-navigation>");
-  }).addMethod("push", function(pageData) {
-    var component;
-    component = this.$generatePage(pageData, this._pushComponent);
+  }).addMethod("push", function(pageData, replaceParent) {
+    var component, pushFunction;
+    if (replaceParent == null) {
+      replaceParent = false;
+    }
+    pushFunction = this._pushComponent.bind(this, replaceParent);
+    component = this.$generatePage(pageData, pushFunction, replaceParent);
     if (component == null) {
-      return this._startLoading();
-    } else {
-      return this._pushComponent(component);
+      return this._startLoading(replaceParent);
     }
   }).addMethod("pop", function() {
     this.dispatchEvent("onPop");
@@ -410,7 +415,7 @@
     })(this));
   }).addMethod("switchTo", function(i) {
     return this._animateTo(i, i < this._pageIndex);
-  }).addMethod("_pushComponent", function(component) {
+  }).addMethod("_pushComponent", function(replaceParent, component) {
     if (component == null) {
       return;
     }
@@ -422,8 +427,15 @@
       component = component._component;
     }
     this.slots.pages.push(component);
-    return this._animateTo(this.slots.pages.length - 1, true);
-  }).addProperty("duration", [SUITE.PrimitiveType.Number], 200).addMethod("_animateTo", function(index, goRight, callback) {
+    return this._animateTo(this.slots.pages.length - 1, true, (function(_this) {
+      return function() {
+        if (replaceParent) {
+          _this.slots.pages.splice(-2, 1);
+          return _this._pageIndex -= 1;
+        }
+      };
+    })(this));
+  }).addProperty("duration", [SUITE.PrimitiveType.Number], 200).addMethod("_animateTo", function(index, goRight, callback, oncomplete) {
     var currentPage, newPage, newPageElement;
     if (index >= this.slots.pages.length || index < 0) {
       throw new Error("<hierarchical-navigation> Page index " + index + " out of bounds.");
@@ -452,7 +464,10 @@
         }
         _this._animating = false;
         return wait(_this.$duration, function() {
-          return currentPage.unrender();
+          currentPage.unrender();
+          if (oncomplete) {
+            return oncomplete();
+          }
         });
       };
     })(this));
