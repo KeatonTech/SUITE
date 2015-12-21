@@ -700,6 +700,8 @@ window.SUITE.AttrFunctionFactory = function(default_element, transition) {
     }
   };
 };
+window.SUITE.TextWidthWiggle = 2;
+
 window.SUITE.TextMetrics = (function() {
   function TextMetrics(cfg) {
     if (SUITE._hiddenCanvas == null) {
@@ -734,7 +736,7 @@ window.SUITE.TextMetrics = (function() {
     width += string.length * this.letterSpacing;
     width = Math.ceil(width);
     return {
-      width: width,
+      width: width + window.SUITE.TextWidthWiggle,
       height: this.fontSize
     };
   };
@@ -907,12 +909,10 @@ window.SUITE.ModuleAPI = (function() {
   };
 
   ModuleAPI.prototype._getComponentProperty = function(name, val) {
-    console.log("GET", name, val);
     return this._[name];
   };
 
   ModuleAPI.prototype._setComponentProperty = function(name, val) {
-    console.log("SET", name, val);
     return this._[name] = val;
   };
 
@@ -2510,7 +2510,7 @@ new window.SUITE.ModuleBuilder("text").extend("fixed-size-element").addProperty(
   this.updateSize();
   return p;
 }).addMethod("computeSize", function() {
-  return new SUITE.TextMetrics(this).measure(this.$string) + 2;
+  return new SUITE.TextMetrics(this).measure(this.$string);
 }).register();
 new window.SUITE.ModuleBuilder("image").extend("absolute-element").addProperty("url", [SUITE.PrimitiveType.String], "", function(val) {
   var image;
@@ -2545,6 +2545,10 @@ new window.SUITE.ModuleBuilder("row").extend("box").removeProperty("maxWidth").r
   return this._relayout();
 }).addMethod("_relayout", function() {
   var child, height, stack_height, total_width, _i, _j, _len, _len1, _ref, _ref1;
+  if (this.inRelayout) {
+    return;
+  }
+  this.inRelayout = true;
   stack_height = 0;
   _ref = this.slots.children;
   for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -2577,7 +2581,8 @@ new window.SUITE.ModuleBuilder("row").extend("box").removeProperty("maxWidth").r
     }
     total_width += child.$width + this.$spacing;
   }
-  return this.$width = total_width - this.$spacing;
+  this.$width = total_width - this.$spacing;
+  return this.inRelayout = false;
 }).setRenderer(function() {
   var div;
   div = this["super"]();
@@ -2586,7 +2591,6 @@ new window.SUITE.ModuleBuilder("row").extend("box").removeProperty("maxWidth").r
 }).addEventHandler("onResize", function(size) {
   return this._relayout();
 }).addSlotEventHandler("children", "onResize", function(size) {
-  console.log("CHILD RESIZED");
   return this._relayout();
 }).addSlotEventHandler("children", "onHide", function(size) {
   return this._relayout();

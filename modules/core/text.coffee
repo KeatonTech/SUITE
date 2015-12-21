@@ -29,6 +29,6 @@ new window.SUITE.ModuleBuilder("text")
     @updateSize()
     return p
 
-  .addMethod "computeSize", ()-> return new SUITE.TextMetrics(this).measure(@$string) + 2
+  .addMethod "computeSize", ()-> return new SUITE.TextMetrics(this).measure(@$string)
 
   .register()

@@ -13,6 +13,10 @@ new window.SUITE.ModuleBuilder("row")
   # Internal function to update the layout of the stack
   .addMethod "_relayout", ()->
 
+    # Prevent changes in here from triggering recursive relayouts
+    if @inRelayout then return
+    @inRelayout = true
+
     # Figure out how wide this stack should be
     stack_height = 0
     for child in @slots.children
@@ -36,6 +40,8 @@ new window.SUITE.ModuleBuilder("row")
     # Make this stack the correct height
     @$width = total_width - @$spacing
 
+    @inRelayout = false
+
   # Lay out the children
   .setRenderer ()->
     div = @super()
@@ -44,9 +50,7 @@ new window.SUITE.ModuleBuilder("row")
 
   # Watch for this component or any of its children to resize
   .addEventHandler "onResize", (size)-> @_relayout()
-  .addSlotEventHandler "children", "onResize", (size)->
-    console.log "CHILD RESIZED"
-    @_relayout()
+  .addSlotEventHandler "children", "onResize", (size)-> @_relayout()
   .addSlotEventHandler "children", "onHide", (size)-> @_relayout()
   .addSlotEventHandler "children", "onShow", (size)-> @_relayout()
 

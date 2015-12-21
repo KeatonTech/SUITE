@@ -1,4 +1,6 @@
 # Methods for measuring text
+window.SUITE.TextWidthWiggle = 2
+
 class window.SUITE.TextMetrics
   constructor: (cfg)->
     if !SUITE._hiddenCanvas? then SUITE._hiddenCanvas = @createCanvas()
@@ -31,4 +33,4 @@ class window.SUITE.TextMetrics
     width = @ctx.measureText(string).width
     width += (string.length) * @letterSpacing
     width = Math.ceil(width)
-    return {width: width, height: @fontSize}
+    return {width: width + window.SUITE.TextWidthWiggle, height: @fontSize}

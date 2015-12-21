@@ -106,12 +106,8 @@ class window.SUITE.ModuleAPI
     @_._values[name] = val
 
   # Getter and setter functions
-  _getComponentProperty: (name, val)-> 
-    console.log "GET", name, val
-    @_[name]
-  _setComponentProperty: (name, val)->
-    console.log "SET", name, val
-    @_[name] = val
+  _getComponentProperty: (name, val)-> @_[name]
+  _setComponentProperty: (name, val)-> @_[name] = val
 
   # STORED HTML ELEMENTS ====================================================================
 
