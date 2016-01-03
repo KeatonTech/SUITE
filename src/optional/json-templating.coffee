@@ -107,7 +107,9 @@ window.SUITE._parseTemplateInternal = (json)->
       else if name[0] == "@"
         switch name
           when "@if"
-            if !val then return undefined
+            if val? and (val instanceof SUITE.Global or val instanceof SUITE.Expression)
+              if !val.value then return undefined
+            else if !val then return undefined
 
       # If there are multiple slots, they must be named
       else if component._module.slots[name]?

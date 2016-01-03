@@ -4,14 +4,20 @@ new window.SUITE.ModuleBuilder("container")
   .extend("absolute-element")
   .addSlot("children", true) # Repeated slot
 
-  .addMethod "addChild", (child)-> @fillSlot "children", child
+  .addMethod "addChild", (child)->
+    @fillSlot "children", child
+    if @rootElement?
+      newSlot = @slots.children[@slots.children.length - 1]
+      @rootElement.appendChild @renderSlot newSlot
+      newSlot.resize(@size)
+
   .addMethod "clearChildren", ()->
     @emptySlot "children"
     @unrender()
 
   # Rendered as a group, does not enforce any layout
-  .setRenderer ()->
-    div = @super()
+  .setRenderer (type)->
+    div = @super(type)
     div.appendChild(@renderSlot slot) for slot in @slots.children
     return div
 

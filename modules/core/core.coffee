@@ -26,7 +26,7 @@ new window.SUITE.ModuleBuilder("visible-element")
 
   .addStyle "styled",
     backgroundColor: ()-> @$fill
-    borderColor: ()-> @$stroke
+    border: ()-> @$stroke
     borderWidth: ()-> @$strokeWidth
     borderRadius: ()-> @$cornerRadius
     boxShadow: ()-> @$shadow
@@ -36,7 +36,7 @@ new window.SUITE.ModuleBuilder("visible-element")
     transform: ()-> @$transform
     WebkitTransform: ()-> @$transform
     MsTransform: ()-> @$transform
-    display: ()-> if !@$visible then "none" else "inherit"
+    display: ()-> if @$display? then @$display else if !@$visible then "none" else "inherit"
 
 
   # IMPLEMENTATION ==========================================================================

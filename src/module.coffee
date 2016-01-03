@@ -78,7 +78,7 @@ class window.SUITE.Module
 
   # Returns the text of the SVG markup
   # By default calls the render function of the module's superclass
-  render: ()-> return @super()
+  render: (tag)-> return @super(tag)
 
   # Allows property values to be changed when the component is resized.
   # Return true to indicate that a re-render is necessary

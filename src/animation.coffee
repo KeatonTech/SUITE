@@ -76,6 +76,8 @@ window.SUITE.AnimateChanges = (transition, func)->
   if window.SUITE._animationState.blocked
     return window.SUITE._animationState.queue.push [transition, func]
 
+  if transition is 0 then return func()
+
   window.SUITE._animationState.blocked = true
   if typeof transition is 'number' then transition = new SUITE.Transition transition
   window.SUITE._currentTransition = transition

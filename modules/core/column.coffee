@@ -19,6 +19,7 @@ new window.SUITE.ModuleBuilder("column")
     total_spacing = 0
     for child in @slots.children
       if !child.$visible then continue
+      if child.$width is "auto" then child._colAutoWidth = true
       if child._colAutoWidth then continue
       if child.$expanded? and !child.$expanded then continue
       total_spacing += child.$columnSpacing or @$spacing

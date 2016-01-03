@@ -181,9 +181,6 @@
     return this._rendered = false;
   }).setOnResize(function(size) {
     this["super"](size);
-    if (!this.$shown) {
-      return;
-    }
     return this.slots.child.resize({
       width: this.$childWidth,
       height: size.height

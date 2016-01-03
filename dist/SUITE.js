@@ -313,8 +313,8 @@ window.SUITE.Module = (function() {
     return this["super"]();
   };
 
-  Module.prototype.render = function() {
-    return this["super"]();
+  Module.prototype.render = function(tag) {
+    return this["super"](tag);
   };
 
   Module.prototype.onResize = function(size) {
@@ -462,6 +462,9 @@ window.SUITE._currentTransition = void 0;
 window.SUITE.AnimateChanges = function(transition, func) {
   if (window.SUITE._animationState.blocked) {
     return window.SUITE._animationState.queue.push([transition, func]);
+  }
+  if (transition === 0) {
+    return func();
   }
   window.SUITE._animationState.blocked = true;
   if (typeof transition === 'number') {
@@ -2011,7 +2014,11 @@ window.SUITE._parseTemplateInternal = function(json) {
       } else if (name[0] === "@") {
         switch (name) {
           case "@if":
-            if (!val) {
+            if ((val != null) && (val instanceof SUITE.Global || val instanceof SUITE.Expression)) {
+              if (!val.value) {
+                return void 0;
+              }
+            } else if (!val) {
               return void 0;
             }
         }
@@ -2076,7 +2083,7 @@ new window.SUITE.ModuleBuilder("visible-element").addProperty("id", [SUITE.Primi
   backgroundColor: function() {
     return this.$fill;
   },
-  borderColor: function() {
+  border: function() {
     return this.$stroke;
   },
   borderWidth: function() {
@@ -2107,7 +2114,9 @@ new window.SUITE.ModuleBuilder("visible-element").addProperty("id", [SUITE.Primi
     return this.$transform;
   },
   display: function() {
-    if (!this.$visible) {
+    if (this.$display != null) {
+      return this.$display;
+    } else if (!this.$visible) {
       return "none";
     } else {
       return "inherit";
@@ -2183,13 +2192,19 @@ new window.SUITE.ModuleBuilder("fixed-size-element").extend("absolute-element").
   return this.dispatchEvent("onResize", this.size);
 }).register();
 new window.SUITE.ModuleBuilder("container").extend("absolute-element").addSlot("children", true).addMethod("addChild", function(child) {
-  return this.fillSlot("children", child);
+  var newSlot;
+  this.fillSlot("children", child);
+  if (this.rootElement != null) {
+    newSlot = this.slots.children[this.slots.children.length - 1];
+    this.rootElement.appendChild(this.renderSlot(newSlot));
+    return newSlot.resize(this.size);
+  }
 }).addMethod("clearChildren", function() {
   this.emptySlot("children");
   return this.unrender();
-}).setRenderer(function() {
+}).setRenderer(function(type) {
   var div, slot, _i, _len, _ref;
-  div = this["super"]();
+  div = this["super"](type);
   _ref = this.slots.children;
   for (_i = 0, _len = _ref.length; _i < _len; _i++) {
     slot = _ref[_i];
@@ -2207,22 +2222,6 @@ new window.SUITE.ModuleBuilder("container").extend("absolute-element").addSlot("
     _results.push(slot.resize(size));
   }
   return _results;
-}).register();
-new window.SUITE.ModuleBuilder("html").extend("container").addProperty("html", [SUITE.PrimitiveType.String], void 0, function(val) {
-  if (this.rootElement == null) {
-    return;
-  }
-  return this.rootElement.innerHTML = val;
-}).setInitializer(function() {
-  return new SUITE.StyleManager().addStyle(new SUITE.CSSRule("." + SUITE.config.id_prefix + "htmlblock *", {
-    position: "static"
-  }));
-}).setRenderer(function() {
-  var div;
-  div = this["super"]();
-  div.className += SUITE.config.id_prefix + "htmlblock";
-  div.innerHTML = this.$html;
-  return div;
 }).register();
 new window.SUITE.ModuleBuilder("layout-in-container").extend("visible-element").addSlot("child", false).addProperty("containerWidth", [SUITE.PrimitiveType.Number]).addProperty("containerHeight", [SUITE.PrimitiveType.Number]).setOnResize(function(size) {
   this.$containerWidth = size.width;
@@ -2335,6 +2334,35 @@ new window.SUITE.ModuleBuilder("box").extend("container").addProperty("minWidth"
     _results.push(slot.resize(this.size));
   }
   return _results;
+}).register();
+new window.SUITE.ModuleBuilder("html").extend("container").addProperty("html", [SUITE.PrimitiveType.String], void 0, function(val) {
+  if (this.rootElement == null) {
+    return;
+  }
+  return this.rootElement.innerHTML = val;
+}).setInitializer(function() {
+  return new SUITE.StyleManager().addStyle(new SUITE.CSSRule("." + SUITE.config.id_prefix + "htmlblock *", {
+    position: "static"
+  }));
+}).setRenderer(function() {
+  var div;
+  div = this["super"]();
+  div.className += SUITE.config.id_prefix + "htmlblock";
+  div.innerHTML = this.$html;
+  div.style.overflow = "scroll";
+  return div;
+}).register();
+
+new window.SUITE.ModuleBuilder("iframe").extend("box").addProperty("src", [SUITE.PrimitiveType.String], void 0, function(val) {
+  if (this.rootElement == null) {
+    return;
+  }
+  return this.rootElement.setAttribute("src", val);
+}).setRenderer(function() {
+  var frame;
+  frame = this["super"]("iframe");
+  frame.setAttribute("src", this.$src);
+  return frame;
 }).register();
 new window.SUITE.ModuleBuilder("expander").extend("box").addProperty("expanded", [SUITE.PrimitiveType.Boolean], false, function(val, old) {
   if (val === old) {
@@ -2501,7 +2529,8 @@ new window.SUITE.ModuleBuilder("text").extend("fixed-size-element").addProperty(
   },
   lineHeight: function() {
     return this.$height + "px";
-  }
+  },
+  textAlign: "center"
 }).setRenderer(function() {
   var p;
   p = this["super"]("p");
@@ -2616,6 +2645,9 @@ new window.SUITE.ModuleBuilder("column").extend("box").addProperty("justify", [S
     if (!child.$visible) {
       continue;
     }
+    if (child.$width === "auto") {
+      child._colAutoWidth = true;
+    }
     if (child._colAutoWidth) {
       continue;
     }
@@ -2696,6 +2728,21 @@ new window.SUITE.ModuleBuilder("column").extend("box").addProperty("justify", [S
 }).addSlotEventHandler("children", "onShow", function(size) {
   return this._relayout();
 }).register();
+new window.SUITE.ModuleBuilder("form").extend("box").addProperty("name", [SUITE.PrimitiveType.String], "form", function() {
+  return this.rerender();
+}).addProperty("action", [SUITE.PrimitiveType.String], "#", function() {
+  return this.rerender();
+}).addProperty("method", [SUITE.PrimitiveType.String], "post", function() {
+  return this.rerender();
+}).setRenderer(function() {
+  var form;
+  form = this["super"]("form");
+  form.setAttribute("name", this.$name);
+  form.setAttribute("action", this.$action);
+  form.setAttribute("method", this.$method);
+  return form;
+}).register();
+
 new window.SUITE.ModuleBuilder("text-input").extend("absolute-element").addProperty("value", [SUITE.PrimitiveType.String], void 0, function(val) {
   if (this.rootElement == null) {
     return;
@@ -2711,6 +2758,11 @@ new window.SUITE.ModuleBuilder("text-input").extend("absolute-element").addPrope
     return;
   }
   return this.rootElement.setAttribute("type", val);
+}).addProperty("maxLength", [SUITE.PrimitiveType.Number], void 0, function(val) {
+  if (this.rootElement == null) {
+    return;
+  }
+  return this.rootElement.setAttribute("maxlength", val);
 }).setRenderer(function() {
   var input;
   input = this["super"]("input");
@@ -2721,6 +2773,14 @@ new window.SUITE.ModuleBuilder("text-input").extend("absolute-element").addPrope
   if (this.$placeholder != null) {
     input.setAttribute("placeholder", this.$placeholder);
   }
+  if (this.$maxLength != null) {
+    input.setAttribute("maxlength", this.$maxLength);
+  }
+  input.addEventListener("keydown", (function(_this) {
+    return function(e) {
+      return e.stopPropagation();
+    };
+  })(this));
   input.addEventListener("keyup", (function(_this) {
     return function(e) {
       _this.setPropertyWithoutSetter("value", input.value);
@@ -2736,6 +2796,8 @@ new window.SUITE.ModuleBuilder("text-input").extend("absolute-element").addPrope
       return _this.dispatchEvent("onChanged", [_this.$value]);
     };
   })(this));
+  this.addHandlerBinding(input, "focus", "onFocus");
+  this.addHandlerBinding(input, "blur", "onBlur");
   return input;
 }).register();
 
@@ -2770,9 +2832,16 @@ new window.SUITE.ModuleBuilder("text-area").extend("absolute-element").addProper
   textarea.addEventListener('paste', this.deferredContentResize);
   textarea.addEventListener('drop', this.deferredContentResize);
   textarea.addEventListener('keydown', this.deferredContentResize);
+  this.addHandlerBinding(textarea, "focus", "onFocus");
+  this.addHandlerBinding(textarea, "blur", "onBlur");
   textarea.focus();
   textarea.select();
   this.contentResize;
+  textarea.addEventListener("keydown", (function(_this) {
+    return function(e) {
+      return e.stopPropagation();
+    };
+  })(this));
   textarea.addEventListener("keypress", function(e) {
     if (e.keyCode === 13) {
       return false;
@@ -2782,6 +2851,7 @@ new window.SUITE.ModuleBuilder("text-area").extend("absolute-element").addProper
     return function(e) {
       _this.setPropertyWithoutSetter("value", textarea.value);
       if (e.keyCode === 13) {
+        e.preventDefault();
         return _this.dispatchEvent("onSubmit", [_this.$value]);
       } else {
         return _this.dispatchEvent("onChange", [_this.$value]);

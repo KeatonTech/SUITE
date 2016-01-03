@@ -21,6 +21,7 @@ new window.SUITE.ModuleBuilder("text")
     fontWeight: ()-> @$fontWeight
     letterSpacing: ()-> @$letterSpacing
     lineHeight: ()-> @$height + "px"
+    textAlign: "center" # compensate for offset
 
   .setRenderer ()->
     p = @super("p")

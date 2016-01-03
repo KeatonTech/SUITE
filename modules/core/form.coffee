@@ -1,3 +1,21 @@
+# Adds a <form>
+new window.SUITE.ModuleBuilder("form")
+  .extend "box"
+
+  .addProperty "name", [SUITE.PrimitiveType.String], "form", ()-> @rerender()
+  .addProperty "action", [SUITE.PrimitiveType.String], "#", ()-> @rerender()
+  .addProperty "method", [SUITE.PrimitiveType.String], "post", ()-> @rerender()
+
+  .setRenderer ()->
+    form = @super "form"
+    form.setAttribute "name", @$name
+    form.setAttribute "action", @$action
+    form.setAttribute "method", @$method
+    return form
+
+  .register()
+
+
 # Adds <input type='text'>
 new window.SUITE.ModuleBuilder("text-input")
   .extend "absolute-element"
@@ -14,11 +32,18 @@ new window.SUITE.ModuleBuilder("text-input")
     if !@rootElement? then return
     @rootElement.setAttribute "type", val
 
+  .addProperty "maxLength", [SUITE.PrimitiveType.Number], undefined, (val)->
+    if !@rootElement? then return
+    @rootElement.setAttribute "maxlength", val
+
   .setRenderer ()->
     input = @super("input")
     input.setAttribute "type", @$type or "text"
     if @$value? then input.setAttribute "value", @$value
     if @$placeholder? then input.setAttribute "placeholder", @$placeholder
+    if @$maxLength? then input.setAttribute "maxlength", @$maxLength
+
+    input.addEventListener "keydown", (e)=> e.stopPropagation()
 
     input.addEventListener "keyup", (e)=>
       @setPropertyWithoutSetter "value", input.value
@@ -29,6 +54,9 @@ new window.SUITE.ModuleBuilder("text-input")
 
     input.addEventListener "change", (e)=>
       @dispatchEvent "onChanged", [@$value]
+
+    @addHandlerBinding input, "focus", "onFocus"
+    @addHandlerBinding input, "blur", "onBlur"
 
     return input
 
@@ -66,15 +94,21 @@ new window.SUITE.ModuleBuilder("text-area")
     textarea.addEventListener 'drop',    @deferredContentResize
     textarea.addEventListener 'keydown', @deferredContentResize
 
+    @addHandlerBinding textarea, "focus", "onFocus"
+    @addHandlerBinding textarea, "blur", "onBlur"
+
     textarea.focus();
     textarea.select();
     @contentResize
+
+    textarea.addEventListener "keydown", (e)=> e.stopPropagation()
 
     textarea.addEventListener "keypress", (e)-> if e.keyCode is 13 then return false
 
     textarea.addEventListener "keyup", (e)=>
       @setPropertyWithoutSetter "value", textarea.value
       if e.keyCode is 13
+        e.preventDefault()
         @dispatchEvent "onSubmit", [@$value]
       else
         @dispatchEvent "onChange", [@$value]

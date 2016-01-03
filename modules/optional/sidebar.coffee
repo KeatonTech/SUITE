@@ -96,7 +96,6 @@ new window.SUITE.ModuleBuilder("sidebar-layout")
 
   .setOnResize (size)->
     @super(size)
-    if !@$shown then return
     @slots.child.resize({width: @$childWidth, height: size.height})
 
   .register()

@@ -17,7 +17,7 @@ new window.SUITE.ModuleBuilder("row")
     if @inRelayout then return
     @inRelayout = true
 
-    # Figure out how wide this stack should be
+    # Figure out how tall this stack should be
     stack_height = 0
     for child in @slots.children
       if !child.$visible then continue

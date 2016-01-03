@@ -16,6 +16,22 @@ new window.SUITE.ModuleBuilder("html")
     div = @super()
     div.className += SUITE.config.id_prefix + "htmlblock"
     div.innerHTML = @$html
+    div.style.overflow = "scroll"
     return div
+
+  .register()
+
+
+# A different way of adding HTML to the page: through an iFrame
+new window.SUITE.ModuleBuilder("iframe")
+  .extend "box"
+  .addProperty "src", [SUITE.PrimitiveType.String], undefined, (val)->
+    if !@rootElement? then return
+    @rootElement.setAttribute "src", val
+
+  .setRenderer ()->
+    frame = @super("iframe")
+    frame.setAttribute "src", @$src
+    return frame
 
   .register()
