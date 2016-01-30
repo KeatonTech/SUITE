@@ -3,7 +3,7 @@
 
 **NOTE: SUITE is no longer under active development. It was an experimental project designed
 largely to serve as the backbone of Downplay.fm. It does that job well, but has numerous
-limitations that would prevent it from being a useful general purpose framework.**
+limitations that prevent it from being a useful general purpose framework.**
 
 Suite is a lightweight UI framework for web applications inspired by both Facebook's React
 and Apple's UIKit. It aims to abstract out the intricacies of HTML by creating its own view
@@ -234,11 +234,4 @@ Here's a bunch of functions you can use in the Module API:
 Named elements are mostly just a convenience, so you don't have to run querySelector a bunch.
 
 ## Status
-SUITE is still in the early phases of development. API's are basically guaranteed to change.
-I am working on building a full-scale website with this tech, which I find is a very good way
-to guide development of a library. That means I will first focus on building out a module set
-and getting all of the features I need. After that site launches I'll come back to this and
-build out a testing framework and useful things like that.
-
-If you'd like to help, I'll give you a million internet high-fives. Get in touch @keatontech,
-or keaton.brandt@gmail.com.
+SUITE is no longer in active development.
