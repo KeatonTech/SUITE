@@ -1,6 +1,10 @@
 # SUITE
 ### Scriptable UI Templating Engine
 
+**NOTE: SUITE is no longer under active development. It was an experimental project designed
+largely to serve as the backbone of Downplay.fm. It does that job well, but has numerous
+limitations that would prevent it from being a useful general purpose framework.**
+
 Suite is a lightweight UI framework for web applications inspired by both Facebook's React
 and Apple's UIKit. It aims to abstract out the intricacies of HTML by creating its own view
 structure comprised of functional components rather than DOM elements. This componentized
@@ -10,8 +14,6 @@ CSS to just do what it's good at: styling things. Internally, Suite stays fast a
 keeping things out of the DOM unless they are actually on-screen.
 
 **tl;dr** Suite is a framework for interactive web components with their own layout system.
-
-*Suite is still in the early stages of development. Everything is subject to change*
 
 ## Usage
 ### Terminology
